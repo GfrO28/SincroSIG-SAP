@@ -1,0 +1,38 @@
+# Credenciales y configuración sensible
+.env
+*.env
+config/secrets.py
+
+# Logs y exportaciones con data del negocio
+logs/
+*.log
+*.xlsx
+*.xls
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Entornos virtuales
+venv/
+env/
+.venv/
+.env/
+
+# IDEs
+.vscode/
+.idea/
+*.suo
+*.user
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+desktop.ini
