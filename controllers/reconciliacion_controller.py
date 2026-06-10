@@ -184,14 +184,28 @@ def mostrar_ventana_resultados(parent, df_ajustes, soc_sel, n_logs_bd=0):
     tb.Label(header_frame, text="Resumen de Reconciliación por Fechas",
              font=("Segoe UI", 12, "bold"), bootstyle="primary").pack(side="left")
 
-    var_ocultar_sin_ingreso = tk.BooleanVar(value=False)
-    var_ocultar_stock_ok    = tk.BooleanVar(value=False)
+    var_ocultar_sin_ingreso = tk.BooleanVar(value=True)
+    var_ocultar_stock_ok    = tk.BooleanVar(value=True)
     tb.Checkbutton(header_frame, text="Ocultar artículos con ingreso total = 0",
                    variable=var_ocultar_sin_ingreso, bootstyle="secondary",
                    command=lambda: construir_tabs(_df_activo())).pack(side="right", padx=6)
     tb.Checkbutton(header_frame, text="Ocultar artículos con stock SAP suficiente",
                    variable=var_ocultar_stock_ok, bootstyle="secondary",
                    command=lambda: construir_tabs(_df_activo())).pack(side="right", padx=2)
+
+    trees = []
+    var_expandir_todo = tk.BooleanVar(value=False)
+
+    def toggle_expand_all():
+        state = var_expandir_todo.get()
+        for t in trees:
+            if t.winfo_exists():
+                for iid in t.get_children():
+                    t.item(iid, open=state)
+
+    tb.Checkbutton(header_frame, text="Expandir todo",
+                   variable=var_expandir_todo, bootstyle="info",
+                   command=toggle_expand_all).pack(side="right", padx=6)
 
     # ── Panel de auditoría ───────────────────────────────────────────────
     _cola_df  = df_ajustes[df_ajustes['Concepto'].str.contains('COLA', na=False)]
@@ -222,9 +236,9 @@ def mostrar_ventana_resultados(parent, df_ajustes, soc_sel, n_logs_bd=0):
     notebook = tb.Notebook(main_frame, bootstyle="info")
     notebook.pack(fill="both", expand=True, pady=5)
 
-    cols    = ("item",     "fecha",      "concepto", "ajuste",           "costo_sig",        "whs",     "id_sig",  "stock_sap",  "stock_sig",  "mov",          "id_mov")
-    headers = ["Artículo", "Fecha Reg.", "Concepto", "Cant. a Ingresar", "Precio Unit. SIG", "Almacén", "Tienda",  "Stock SAP",  "Stock SIG",  "Cant. Salida", "ID Mov"]
-    widths  = [140,        100,          215,        120,                110,                75,        70,        110,          110,          100,            95]
+    cols    = ("item",     "fecha",      "concepto", "ajuste",           "costo_sig",        "whs",     "centro_costo",    "id_sig",  "stock_sap",  "stock_sig",  "mov",          "id_mov")
+    headers = ["Artículo", "Fecha Reg.", "Concepto", "Cant. a Ingresar", "Precio Unit. SIG", "Almacén", "Centro de Costo", "Tienda",  "Stock SAP",  "Stock SIG",  "Cant. Salida", "ID Mov"]
+    widths  = [140,        100,          215,        120,                110,                75,        110,               90,        110,          110,          100,            95]
 
     style = ttk.Style()
     style.configure("Treeview", rowheight=25)
@@ -256,6 +270,7 @@ def mostrar_ventana_resultados(parent, df_ajustes, soc_sel, n_logs_bd=0):
         return df.copy()
 
     def construir_tabs(df):
+        trees.clear()
         for tab_id in notebook.tabs():
             notebook.forget(tab_id)
         if df is None or df.empty:
@@ -276,12 +291,34 @@ def mostrar_ventana_resultados(parent, df_ajustes, soc_sel, n_logs_bd=0):
                 tk.Label(legend_frame, text=f"  {texto}  ", bg=color, fg="black", relief="solid",
                          borderwidth=1, font=("Segoe UI", 8, "bold")).pack(side="left", padx=4)
 
+            lbl_status = tk.Label(tab_frame, text="▲ Clic en un encabezado para copiar esa columna (solo totales)",
+                                  bg="#1a1a2e", fg="#aaaaaa", font=("Segoe UI", 8), anchor="w")
+            lbl_status.pack(fill="x", padx=6, pady=(2, 2))
+
             tree_container = tb.Frame(tab_frame)
             tree_container.pack(fill="both", expand=True)
 
-            tree = ttk.Treeview(tree_container, columns=cols, show="headings", height=20)
-            for col, head, w in zip(cols, headers, widths):
-                tree.heading(col, text=head)
+            tree = ttk.Treeview(tree_container, columns=cols, show="tree headings", height=20)
+            tree.column("#0", width=26, stretch=False, minwidth=26)
+
+            def _cmd_copiar(t, lbl, idx, nombre_col):
+                def _copiar():
+                    valores = []
+                    for iid in t.get_children():
+                        vals = t.item(iid, 'values')
+                        if vals and idx < len(vals):
+                            v = str(vals[idx]).strip()
+                            if v and v != "-":
+                                valores.append(v)
+                    if valores:
+                        pyperclip.copy("\n".join(valores))
+                        lbl.config(text=f"✓  '{nombre_col}' copiada — {len(valores)} filas al portapapeles", fg="#6BCB77")
+                    else:
+                        lbl.config(text="Sin datos para copiar.", fg="#FF6B6B")
+                return _copiar
+
+            for i, (col, head, w) in enumerate(zip(cols, headers, widths)):
+                tree.heading(col, text=head, command=_cmd_copiar(tree, lbl_status, i, head))
                 tree.column(col, width=w, anchor="center")
 
             sb_v = ttk.Scrollbar(tree_container, orient="vertical",  command=tree.yview)
@@ -298,6 +335,23 @@ def mostrar_ventana_resultados(parent, df_ajustes, soc_sel, n_logs_bd=0):
 
             df_sheet = df[df['Fecha_Grupo'] == fg].copy()
             for (id_sig, item_code), df_group in df_sheet.groupby(['ID_SIG', 'ItemCode'], sort=False):
+                total_monto  = df_group['Monto_A_Ingresar'].sum()
+                if pd.isna(total_monto): total_monto = 0.0
+                whs_group    = str(df_group.iloc[0]['WhsCode'])
+                costos_grupo = df_group['Costo_SIG'].dropna()
+                costo_grupo  = f"{float(costos_grupo.iloc[0]):.4f}" if not costos_grupo.empty else "-"
+
+                try:
+                    tienda_fmt = f"P{int(id_sig):04d}"
+                except Exception:
+                    tienda_fmt = str(id_sig)
+
+                parent_iid = tree.insert("", "end", open=var_expandir_todo.get(),
+                                         tags=('total_row',), values=(
+                    item_code, "-", "SUMATORIA TOTAL",
+                    f"{total_monto:.4f}", costo_grupo, whs_group, "C0001", tienda_fmt, "-", "-", "-"
+                ))
+
                 for _, row in df_group.iterrows():
                     concepto    = str(row['Concepto'])
                     monto       = float(row['Monto_A_Ingresar'])
@@ -305,39 +359,37 @@ def mostrar_ventana_resultados(parent, df_ajustes, soc_sel, n_logs_bd=0):
                     if 'NIVELACIÓN' in concepto:
                         tag = 'nivelacion'
                     elif is_prim_row:
-                        tag = 'cola_prim'  # verde claro — salida del artículo en message
+                        tag = 'cola_prim'
                     else:
-                        tag = 'cola_sec'   # naranja claro — salida de artículo secundario del JSON
-                    tree.insert("", "end", tags=(tag,), values=(
+                        tag = 'cola_sec'
+                    try:
+                        row_tienda_fmt = f"P{int(row['ID_SIG']):04d}"
+                    except Exception:
+                        row_tienda_fmt = str(row['ID_SIG'])
+                    tree.insert(parent_iid, "end", tags=(tag,), values=(
                         row['ItemCode'], row['Fecha'], concepto,
                         f"{monto:.4f}",
                         f"{float(row.get('Costo_SIG', 0.00)):.4f}",
-                        row['WhsCode'], row['ID_SIG'],
+                        row['WhsCode'], "C0001", row_tienda_fmt,
                         f"{float(row['Stock_A_Fecha']):.4f}",
                         f"{float(row.get('Stock_SIG', 0.00)):.4f}",
                         f"{float(row.get('Movimiento', 0.00)):.4f}",
                         row.get('ID_Movimiento', 'N/A'),
                     ))
-                total_monto  = df_group['Monto_A_Ingresar'].sum()
-                whs_group    = str(df_group.iloc[0]['WhsCode'])
-                costos_grupo = df_group['Costo_SIG'].dropna()
-                costo_grupo  = f"{float(costos_grupo.iloc[0]):.4f}" if not costos_grupo.empty else "-"
-                tree.insert("", "end", tags=('total_row',), values=(
-                    f"TOTAL  {item_code}", "-", "SUMATORIA ARTÍCULO",
-                    f"{total_monto:.4f}", costo_grupo, whs_group, str(id_sig), "-", "-", "-", "-"
-                ))
-                tree.insert("", "end", values=tuple([""] * len(cols)))
 
-    construir_tabs(df_ajustes)
+            trees.append(tree)
+
+    construir_tabs(_df_activo())
 
     # Botón para exportar (mantenemos la función de registro)
     def exportar_excel_pestañas():
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = f"ajustes_{soc_sel[:10].strip()}_{timestamp}.xlsx"
         path = os.path.join("SincroSIG", "logs", "SAP", "ConciliacionesSAP", filename)
-        
+
         try:
             os.makedirs(os.path.dirname(path), exist_ok=True)
+            df_export = _df_activo()
             with pd.ExcelWriter(path, engine='xlsxwriter') as writer:
                 workbook = writer.book
                 total_format     = workbook.add_format({'bold': True, 'bg_color': '#FFFF00', 'border': 1})
@@ -345,11 +397,11 @@ def mostrar_ventana_resultados(parent, df_ajustes, soc_sel, n_logs_bd=0):
                 num_total_format = workbook.add_format({'bold': True, 'bg_color': '#FFFF00', 'num_format': '#,##0.0000', 'border': 1})
                 header_format    = workbook.add_format({'bold': True, 'bg_color': '#D7E4BC', 'border': 1})
 
-                for fg in sorted(df_ajustes['Fecha_Grupo'].unique()):
+                for fg in sorted(df_export['Fecha_Grupo'].unique()):
                     sheet_name = str(fg).replace("/", "-")[:31]
                     if not sheet_name or sheet_name == "nan": sheet_name = "Ajuste"
-                    df_sheet = df_ajustes[df_ajustes['Fecha_Grupo'] == fg].copy()
-                    cols_final = ["ItemCode", "Fecha", "Concepto", "Monto_A_Ingresar", "Costo_SIG", "WhsCode", "ID_SIG", "Stock_A_Fecha", "Stock_SIG", "Movimiento", "ID_Movimiento"]
+                    df_sheet = df_export[df_export['Fecha_Grupo'] == fg].copy()
+                    cols_final = ["ItemCode", "Fecha", "Concepto", "Monto_A_Ingresar", "Costo_SIG", "WhsCode", "Centro_Costo", "ID_SIG", "Stock_A_Fecha", "Stock_SIG", "Movimiento", "ID_Movimiento"]
                     worksheet = workbook.add_worksheet(sheet_name)
                     for col_num, value in enumerate(cols_final):
                         worksheet.write(0, col_num, value, header_format)
@@ -357,28 +409,43 @@ def mostrar_ventana_resultados(parent, df_ajustes, soc_sel, n_logs_bd=0):
                     current_row = 1
                     grouped_excel = df_sheet.groupby(['ID_SIG', 'ItemCode'], sort=False)
                     for (id_sig, item_code), df_group in grouped_excel:
+                        try:
+                            tienda_fmt_xl = f"P{int(id_sig):04d}"
+                        except Exception:
+                            tienda_fmt_xl = str(id_sig)
                         for _, data in df_group.iterrows():
                             for col_num, col_name in enumerate(cols_final):
-                                val = data.get(col_name, "")
-                                if pd.isna(val):
-                                    worksheet.write(current_row, col_num, "")
-                                elif isinstance(val, (int, float)):
-                                    worksheet.write(current_row, col_num, val, num_format)
+                                if col_name == "Centro_Costo":
+                                    worksheet.write(current_row, col_num, "C0001")
+                                elif col_name == "ID_SIG":
+                                    worksheet.write(current_row, col_num, tienda_fmt_xl)
                                 else:
-                                    worksheet.write(current_row, col_num, str(val))
+                                    val = data.get(col_name, "")
+                                    if pd.isna(val):
+                                        worksheet.write(current_row, col_num, "")
+                                    elif isinstance(val, (int, float)):
+                                        worksheet.write(current_row, col_num, val, num_format)
+                                    else:
+                                        worksheet.write(current_row, col_num, str(val))
                             current_row += 1
                         total_monto = df_group['Monto_A_Ingresar'].sum()
                         if pd.isna(total_monto): total_monto = 0.0
-                        whs_group   = str(df_group.iloc[0]['WhsCode'])
-                        worksheet.merge_range(current_row, 0, current_row, 5,
-                                              f"TOTAL ARTÍCULO: {item_code} - TIENDA: {id_sig}", total_format)
-                        worksheet.write(current_row, 6, whs_group, total_format)
-                        worksheet.write(current_row, 7, "-", total_format)
-                        worksheet.write(current_row, 8, "-", total_format)
-                        worksheet.write(current_row, 9, total_monto, num_total_format)
-                        worksheet.write(current_row, 10, "-", total_format)
+                        whs_group = str(df_group.iloc[0]['WhsCode'])
+                        # Fila TOTAL con formato SAP
+                        worksheet.write(current_row, 0, item_code,        total_format)
+                        worksheet.write(current_row, 1, "-",              total_format)
+                        worksheet.write(current_row, 2, "SUMATORIA TOTAL",total_format)
+                        worksheet.write(current_row, 3, total_monto,      num_total_format)
+                        worksheet.write(current_row, 4, "-",              total_format)
+                        worksheet.write(current_row, 5, whs_group,        total_format)
+                        worksheet.write(current_row, 6, "C0001",          total_format)
+                        worksheet.write(current_row, 7, tienda_fmt_xl,    total_format)
+                        worksheet.write(current_row, 8, "-",              total_format)
+                        worksheet.write(current_row, 9, "-",              total_format)
+                        worksheet.write(current_row, 10, "-",             total_format)
+                        worksheet.write(current_row, 11, "-",             total_format)
                         current_row += 2
-                    worksheet.set_column(0, 10, 18)
+                    worksheet.set_column(0, 11, 18)
             messagebox.showinfo("Éxito", f"Archivo de auditoría guardado:\n{filename}")
         except Exception as e:
             messagebox.showerror("Error", f"Fallo al exportar: {e}")
@@ -562,13 +629,11 @@ def abrir_interfaz_reconciliacion(root):
         ent_hasta = _CampoFecha(frame_fechas, initialdate=_ayer)
         ent_hasta.grid(row=0, column=3, padx=5)
 
-        var_secundarios = tk.BooleanVar(value=False)
-
         def func_generar_query():
             soc_sel = cbo_sociedad.get()
             if not soc_sel: return
             id_emp = sociedades_dict[soc_sel]
-            incluir_sec = var_secundarios.get()
+            incluir_sec = True
             label_modo = "Primarios + Secundarios" if incluir_sec else "Solo Primarios"
             progress = ProgressWindow(win, f"Generando Query SAP ({label_modo})...")
             def tarea():
@@ -710,7 +775,7 @@ def abrir_interfaz_reconciliacion(root):
                             seen_c[mid] = l
                     logs_raw = list(seen_c.values())
 
-                    incluir_sec = var_secundarios.get()
+                    incluir_sec = True
 
                     # Pre-pase: recolectar todos los (ItemCode, WhsCode) que son primarios
                     # en algún registro. Sirve para incluir ocurrencias secundarias de esos
@@ -825,9 +890,7 @@ def abrir_interfaz_reconciliacion(root):
         frame_queries.pack(fill="x", pady=(8, 2))
         tb.Button(frame_queries, text="1. Generar Query SAP",
                   command=func_generar_query,
-                  bootstyle="info").pack(side="left", expand=True, fill="x", padx=(0, 6))
-        tb.Checkbutton(frame_queries, text="Incluir secundarios",
-                       variable=var_secundarios, bootstyle="info").pack(side="left")
+                  bootstyle="info").pack(side="left", expand=True, fill="x")
         tb.Button(container, text="2. Cargar SAP y Cruzar",
                   command=lanzar_cruce, bootstyle="success").pack(fill="x", pady=(2, 0))
 
