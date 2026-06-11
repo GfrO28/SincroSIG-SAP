@@ -12,7 +12,7 @@ from gui.progress_window import ProgressWindow
 from gui.widgets.calendar_widget import CampoFecha
 from gui.sap_input_window import VentanaEntradaSAP
 from gui.reconciliacion_resultados import mostrar_ventana_resultados
-from modules.reconciliacion_bd import obtener_sociedades, obtener_tiendas_csv, cargar_logs_bd, cargar_saldos
+from modules.reconciliacion_bd import obtener_sociedades, obtener_tiendas_ids, cargar_logs_bd, cargar_saldos
 from modules.reconciliacion_query import (
     parsear_logs_para_query,
     parsear_logs_para_cruce,
@@ -79,8 +79,8 @@ def _construir_ui(win, sociedades: list):
         def _tarea():
             try:
                 _, cur_sig, _, _ = get_connections()
-                tiendas_csv = obtener_tiendas_csv(id_emp)
-                logs        = cargar_logs_bd(cur_sig, tiendas_csv, ent_desde.get(), ent_hasta.get())
+                tiendas_ids = obtener_tiendas_ids(id_emp)
+                logs        = cargar_logs_bd(cur_sig, tiendas_ids, ent_desde.get(), ent_hasta.get())
 
                 primary_set, secondary_set, errores = parsear_logs_para_query(logs)
 
@@ -141,8 +141,8 @@ def _construir_ui(win, sociedades: list):
             try:
                 _, cur_sig, _, _ = get_connections()
                 id_emp      = sociedades_dict[soc_sel]
-                tiendas_csv = obtener_tiendas_csv(id_emp)
-                logs        = cargar_logs_bd(cur_sig, tiendas_csv, ent_desde.get(), ent_hasta.get())
+                tiendas_ids = obtener_tiendas_ids(id_emp)
+                logs        = cargar_logs_bd(cur_sig, tiendas_ids, ent_desde.get(), ent_hasta.get())
 
                 logs_procesados, errores = parsear_logs_para_cruce(logs)
 
@@ -156,11 +156,8 @@ def _construir_ui(win, sociedades: list):
 
                 df_logs = pd.DataFrame(logs_procesados)
 
-                items_list = (
-                    ",".join([f"'{i}'" for i in df_logs['item'].unique()])
-                    if not df_logs.empty else "''"
-                )
-                df_saldos = cargar_saldos(cur_sig, tiendas_csv, items_list)
+                items = list(df_logs['item'].unique()) if not df_logs.empty else []
+                df_saldos = cargar_saldos(cur_sig, tiendas_ids, items)
 
                 # Ítems del log ausentes en el paste SAP → stock = 0
                 df_sap_cruce = df_sap.copy()

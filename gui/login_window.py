@@ -92,8 +92,11 @@ def mostrar_login(parent, on_success):
             else:
                 lbl_error.config(text="Usuario o contraseña incorrectos.")
                 btn_login.config(state="normal", text="  Ingresar")
-        except Exception as e:
-            lbl_error.config(text=f"Error de conexión: {e}")
+        except (ConnectionError, EnvironmentError) as e:
+            lbl_error.config(text=str(e))
+            btn_login.config(state="normal", text="  Ingresar")
+        except Exception:
+            lbl_error.config(text="Error inesperado. Contacte al administrador.")
             btn_login.config(state="normal", text="  Ingresar")
 
     ent_clave.bind("<Return>", _do_login)
