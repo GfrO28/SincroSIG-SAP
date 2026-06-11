@@ -202,13 +202,13 @@ def _construir_contenido(root, user_info, conn_sig, cur_sig, conn_web, cur_web):
     grid.pack(anchor="w")
 
     modulos = [
-        ("PERSONAL",       "Empleados · Estado · Tienda",
+        ("PERSONAL",       "Empleados · Estado",
          "personal",       0, 0,
          lambda: _run_personal(root, cur_web, conn_web)),
-        ("TIENDAS",        "Catálogo · Asignaciones",
+        ("TIENDAS",        "Tiendas · Personal Tienda",
          "tiendas",        1, 0,
          lambda: _run_tiendas(root, cur_web, conn_web)),
-        ("CARGOS",         "Detalle · Asignación",
+        ("CARGOS",         "Cargo · Personal Cargo",
          "cargos",         2, 0,
          lambda: _run_cargos(root, cur_web, conn_web)),
         ("FORMULACIONES",  "TDA vs SIG · Reporte",
@@ -239,20 +239,17 @@ def _construir_contenido(root, user_info, conn_sig, cur_sig, conn_web, cur_web):
 # ── Helpers para comandos agrupados ──────────────────────────────────────────
 
 def _run_personal(root, cur_web, conn_web):
-    """Abre un mini-menú de submódulos de Personal."""
     sub = tb.Toplevel(root)
     sub.title("Personal")
-    sub.geometry("340x200")
+    sub.geometry("340x155")
     sub.resizable(False, False)
     sub.grab_set()
 
     tb.Label(sub, text="PERSONAL", font=("Segoe UI", 13, "bold"),
              bootstyle="info", padding=10).pack()
     for texto, cmd in [
-        ("Sincronizar Personal",        lambda: sync_personal_controller(root, cur_web, conn_web)),
-        ("Sincronizar Estado Personal",  lambda: sync_estado_controller(root, cur_web, conn_web)),
-        ("Sincronizar Tienda Personal",  lambda: sync_personaltienda_controller(root, cur_web, conn_web)),
-        ("Verificar PersonaTiendas",     lambda: validar_personaltienda_controller(root, cur_web, conn_web)),
+        ("Sincronizar Personal",       lambda: sync_personal_controller(root, cur_web, conn_web)),
+        ("Sincronizar Estado Personal", lambda: sync_estado_controller(root, cur_web, conn_web)),
     ]:
         tb.Button(sub, text=texto, bootstyle="outline",
                   width=36, command=lambda c=cmd: (sub.destroy(), c())
@@ -262,36 +259,38 @@ def _run_personal(root, cur_web, conn_web):
 def _run_tiendas(root, cur_web, conn_web):
     sub = tb.Toplevel(root)
     sub.title("Tiendas")
-    sub.geometry("300x130")
+    sub.geometry("340x190")
     sub.resizable(False, False)
     sub.grab_set()
 
     tb.Label(sub, text="TIENDAS", font=("Segoe UI", 13, "bold"),
              bootstyle="success", padding=10).pack()
     for texto, cmd in [
-        ("Sincronizar Tiendas",        lambda: sync_tiendas_controller(root, cur_web, conn_web)),
+        ("Sincronizar Tiendas",         lambda: sync_tiendas_controller(root, cur_web, conn_web)),
+        ("Sincronizar Tienda Personal", lambda: sync_personaltienda_controller(root, cur_web, conn_web)),
+        ("Verificar Personal Tienda",   lambda: validar_personaltienda_controller(root, cur_web, conn_web)),
     ]:
         tb.Button(sub, text=texto, bootstyle="outline",
-                  width=34, command=lambda c=cmd: (sub.destroy(), c())
-                  ).pack(pady=4, padx=20)
+                  width=36, command=lambda c=cmd: (sub.destroy(), c())
+                  ).pack(pady=3, padx=20)
 
 
 def _run_cargos(root, cur_web, conn_web):
     sub = tb.Toplevel(root)
     sub.title("Cargos")
-    sub.geometry("300x150")
+    sub.geometry("340x155")
     sub.resizable(False, False)
     sub.grab_set()
 
     tb.Label(sub, text="CARGOS", font=("Segoe UI", 13, "bold"),
              bootstyle="secondary", padding=10).pack()
     for texto, cmd in [
-        ("Sincronizar Detalle Cargo",  lambda: sync_detallecargo_controller(root, cur_web, conn_web)),
-        ("Sincronizar Cargo Personal", lambda: sync_cargos_controller(root, cur_web, conn_web)),
+        ("Sincronizar Cargo",          lambda: sync_detallecargo_controller(root, cur_web, conn_web)),
+        ("Sincronizar Personal Cargo", lambda: sync_cargos_controller(root, cur_web, conn_web)),
     ]:
         tb.Button(sub, text=texto, bootstyle="outline",
-                  width=34, command=lambda c=cmd: (sub.destroy(), c())
-                  ).pack(pady=4, padx=20)
+                  width=36, command=lambda c=cmd: (sub.destroy(), c())
+                  ).pack(pady=3, padx=20)
 
 
 def _run_formulaciones(root):
