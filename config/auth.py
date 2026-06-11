@@ -34,6 +34,14 @@ def verificar_usuario_sig(idusuario: str, clave_plain: str):
     Verifica credenciales contra la tabla usuarios de SIG.
     Retorna dict con los datos públicos del usuario si es correcto, None si no.
     """
+    # Validar que el .env tiene las variables necesarias antes de intentar conectar
+    faltantes = [k for k, v in SIG_DB.items() if not v]
+    if faltantes:
+        raise EnvironmentError(
+            f"Faltan variables de entorno en el archivo .env: "
+            f"{', '.join(f'SIG_{k.upper()}' for k in faltantes)}"
+        )
+
     try:
         conn = mysql.connector.connect(**SIG_DB)
         cur  = conn.cursor(dictionary=True)
@@ -45,14 +53,18 @@ def verificar_usuario_sig(idusuario: str, clave_plain: str):
             row = cur.fetchone()
             if not row:
                 return None
-            stored = row.pop('clave', '') or ''   # extraer y descartar antes de retornar
+            stored = row.pop('clave', '') or ''
             if stored == _encrypt_clave(clave_plain):
                 return row
             return None
         finally:
             cur.close()
             conn.close()
-    except mysql.connector.Error:
-        raise ConnectionError("No se pudo conectar al servidor de autenticación.")
+    except mysql.connector.Error as e:
+        raise ConnectionError(
+            f"No se pudo conectar al servidor de autenticación.\n"
+            f"Verificá que el equipo tenga acceso a la red del servidor.\n"
+            f"Detalle: {e}"
+        )
     except EnvironmentError:
         raise

@@ -93,7 +93,8 @@ def mostrar_login(parent, on_success):
                 lbl_error.config(text="Usuario o contraseña incorrectos.")
                 btn_login.config(state="normal", text="  Ingresar")
         except (ConnectionError, EnvironmentError) as e:
-            lbl_error.config(text=str(e))
+            from tkinter import messagebox as _mb
+            _mb.showerror("Error de configuración", str(e), parent=win)
             btn_login.config(state="normal", text="  Ingresar")
         except Exception:
             lbl_error.config(text="Error inesperado. Contacte al administrador.")
