@@ -30,15 +30,11 @@ def _encrypt_clave(plain: str) -> str:
     return ''.join(result)
 
 
-_CAMPOS_USUARIO = "idusuario, nombre, apellido, cargo, desccargo, activo, clave"
-
-
 def verificar_usuario_sig(idusuario: str, clave_plain: str):
     """
     Verifica credenciales contra la tabla usuarios de SIG.
-    Retorna dict con los datos públicos del usuario si es correcto, None si no.
+    Retorna dict con los datos del usuario (sin la clave) si es correcto, None si no.
     """
-    # Validar que el .env tiene las variables necesarias antes de intentar conectar
     faltantes = [k for k, v in SIG_DB.items() if not v]
     if faltantes:
         raise EnvironmentError(
@@ -51,13 +47,13 @@ def verificar_usuario_sig(idusuario: str, clave_plain: str):
         cur  = conn.cursor(dictionary=True)
         try:
             cur.execute(
-                f"SELECT {_CAMPOS_USUARIO} FROM usuarios WHERE idusuario = %s",
+                "SELECT * FROM usuarios WHERE idusuario = %s",
                 (idusuario,)
             )
             row = cur.fetchone()
             if not row:
                 return None
-            stored = row.pop('clave', '') or ''
+            stored = row.pop('clave', '') or ''   # descartar clave antes de retornar
             if stored == _encrypt_clave(clave_plain):
                 return row
             return None
