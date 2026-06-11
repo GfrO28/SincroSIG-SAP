@@ -1,8 +1,12 @@
 # config/auth.py
 
 import os
+from pathlib import Path
 import mysql.connector
+from dotenv import load_dotenv
 from config.settings import SIG_DB
+
+load_dotenv(Path(__file__).parent.parent / ".env")
 
 
 def _load_key() -> list:

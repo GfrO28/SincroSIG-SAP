@@ -1,9 +1,11 @@
 # config / settings.py
 
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 
-load_dotenv()  # Carga las variables desde el archivo .env
+# Ruta absoluta al .env en la raíz del proyecto, independiente del CWD
+load_dotenv(Path(__file__).parent.parent / ".env")
 
 SIG_DB = {
     "host": os.getenv("SIG_HOST"),

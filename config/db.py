@@ -3,9 +3,6 @@
 import os
 import mysql.connector
 from config.settings import SIG_DB, WEB_DB
-from dotenv import load_dotenv
-
-load_dotenv()  # Carga las variables desde el archivo .env
 
 def get_connections():
     conn_sig = mysql.connector.connect(**SIG_DB)
