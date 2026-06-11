@@ -238,74 +238,74 @@ def _construir_contenido(root, user_info, conn_sig, cur_sig, conn_web, cur_web):
 
 # ── Helpers para comandos agrupados ──────────────────────────────────────────
 
-def _run_personal(root, cur_web, conn_web):
+def _submenu(root, titulo, emoji, bg_header, items):
+    """
+    Crea un popup de submenú reutilizable.
+    items: list of (emoji, label, bootstyle, comando)
+    """
     sub = tb.Toplevel(root)
-    sub.title("Personal")
-    sub.geometry("340x155")
+    sub.title(titulo)
+    sub.geometry(f"340x{70 + len(items) * 54}")
     sub.resizable(False, False)
     sub.grab_set()
 
-    tb.Label(sub, text="PERSONAL", font=("Segoe UI", 13, "bold"),
-             bootstyle="info", padding=10).pack()
-    for texto, cmd in [
-        ("Sincronizar Personal",       lambda: sync_personal_controller(root, cur_web, conn_web)),
-        ("Sincronizar Estado Personal", lambda: sync_estado_controller(root, cur_web, conn_web)),
-    ]:
-        tb.Button(sub, text=texto, bootstyle="outline",
-                  width=36, command=lambda c=cmd: (sub.destroy(), c())
-                  ).pack(pady=3, padx=20)
+    # ── Header coloreado ──────────────────────────────────────
+    hdr = tk.Frame(sub, bg=bg_header)
+    hdr.pack(fill="x")
+    tk.Label(hdr, text=f"{emoji}  {titulo}",
+             font=("Segoe UI", 13, "bold"),
+             bg=bg_header, fg="white", pady=12).pack()
+
+    tk.Frame(sub, height=1, bg="#00000033").pack(fill="x")
+
+    # ── Botones ───────────────────────────────────────────────
+    body = tb.Frame(sub, padding=(14, 10, 14, 10))
+    body.pack(fill="both", expand=True)
+
+    for btn_emoji, texto, style, cmd in items:
+        tb.Button(body,
+                  text=f"  {btn_emoji}   {texto}",
+                  bootstyle=style,
+                  width=34,
+                  command=lambda c=cmd: (sub.destroy(), c())
+                  ).pack(fill="x", pady=4)
+
+    return sub
+
+
+def _run_personal(root, cur_web, conn_web):
+    _submenu(root, "PERSONAL", "👥", "#1565C0", [
+        ("👤", "Sincronizar Personal",        "info",
+         lambda: sync_personal_controller(root, cur_web, conn_web)),
+        ("🔄", "Sincronizar Estado Personal", "info",
+         lambda: sync_estado_controller(root, cur_web, conn_web)),
+    ])
 
 
 def _run_tiendas(root, cur_web, conn_web):
-    sub = tb.Toplevel(root)
-    sub.title("Tiendas")
-    sub.geometry("340x190")
-    sub.resizable(False, False)
-    sub.grab_set()
-
-    tb.Label(sub, text="TIENDAS", font=("Segoe UI", 13, "bold"),
-             bootstyle="success", padding=10).pack()
-    for texto, cmd in [
-        ("Sincronizar Tiendas",         lambda: sync_tiendas_controller(root, cur_web, conn_web)),
-        ("Sincronizar Tienda Personal", lambda: sync_personaltienda_controller(root, cur_web, conn_web)),
-        ("Verificar Personal Tienda",   lambda: validar_personaltienda_controller(root, cur_web, conn_web)),
-    ]:
-        tb.Button(sub, text=texto, bootstyle="outline",
-                  width=36, command=lambda c=cmd: (sub.destroy(), c())
-                  ).pack(pady=3, padx=20)
+    _submenu(root, "TIENDAS", "🏪", "#2E7D32", [
+        ("🏬", "Sincronizar Tiendas",          "success",
+         lambda: sync_tiendas_controller(root, cur_web, conn_web)),
+        ("🔗", "Sincronizar Tienda Personal",  "success",
+         lambda: sync_personaltienda_controller(root, cur_web, conn_web)),
+        ("✅", "Verificar Personal Tienda",    "warning",
+         lambda: validar_personaltienda_controller(root, cur_web, conn_web)),
+    ])
 
 
 def _run_cargos(root, cur_web, conn_web):
-    sub = tb.Toplevel(root)
-    sub.title("Cargos")
-    sub.geometry("340x155")
-    sub.resizable(False, False)
-    sub.grab_set()
-
-    tb.Label(sub, text="CARGOS", font=("Segoe UI", 13, "bold"),
-             bootstyle="secondary", padding=10).pack()
-    for texto, cmd in [
-        ("Sincronizar Cargo",          lambda: sync_detallecargo_controller(root, cur_web, conn_web)),
-        ("Sincronizar Personal Cargo", lambda: sync_cargos_controller(root, cur_web, conn_web)),
-    ]:
-        tb.Button(sub, text=texto, bootstyle="outline",
-                  width=36, command=lambda c=cmd: (sub.destroy(), c())
-                  ).pack(pady=3, padx=20)
+    _submenu(root, "CARGOS", "📋", "#6A1B9A", [
+        ("🗂️",  "Sincronizar Cargo",           "secondary",
+         lambda: sync_detallecargo_controller(root, cur_web, conn_web)),
+        ("👥", "Sincronizar Personal Cargo",   "secondary",
+         lambda: sync_cargos_controller(root, cur_web, conn_web)),
+    ])
 
 
 def _run_formulaciones(root):
-    sub = tb.Toplevel(root)
-    sub.title("Formulaciones")
-    sub.geometry("320x150")
-    sub.resizable(False, False)
-    sub.grab_set()
-
-    tb.Label(sub, text="FORMULACIONES", font=("Segoe UI", 13, "bold"),
-             bootstyle="danger", padding=10).pack()
-    for texto, cmd in [
-        ("Verificar Formulación TDA vs SIG", lambda: abrir_validacion_formulaciones(root, obtener_tiendas_sig)),
-        ("Reporte Comparativo",              lambda: abrir_interfaz_formulaciones(root, obtener_tiendas_sig)),
-    ]:
-        tb.Button(sub, text=texto, bootstyle="outline",
-                  width=36, command=lambda c=cmd: (sub.destroy(), c())
-                  ).pack(pady=4, padx=20)
+    _submenu(root, "FORMULACIONES", "🧪", "#AD1457", [
+        ("🔍", "Verificar Formulación TDA vs SIG", "danger",
+         lambda: abrir_validacion_formulaciones(root, obtener_tiendas_sig)),
+        ("📊", "Reporte Comparativo",              "primary",
+         lambda: abrir_interfaz_formulaciones(root, obtener_tiendas_sig)),
+    ])
