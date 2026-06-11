@@ -256,7 +256,7 @@ def _submenu(root, titulo, emoji, bg_header, items):
              font=("Segoe UI", 13, "bold"),
              bg=bg_header, fg="white", pady=12).pack()
 
-    tk.Frame(sub, height=1, bg="#00000033").pack(fill="x")
+    tk.Frame(sub, height=1, bg="#222222").pack(fill="x")
 
     # ── Botones ───────────────────────────────────────────────
     body = tb.Frame(sub, padding=(14, 10, 14, 10))
