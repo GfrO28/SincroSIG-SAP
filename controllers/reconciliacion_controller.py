@@ -78,7 +78,7 @@ def _construir_ui(win, sociedades: list):
 
         def _tarea():
             try:
-                _, cur_sig, _, _ = get_connections()
+                conn_sig, cur_sig, _, _ = get_connections()
                 tiendas_ids = obtener_tiendas_ids(id_emp)
                 logs        = cargar_logs_bd(cur_sig, tiendas_ids, ent_desde.get(), ent_hasta.get())
 
@@ -139,7 +139,7 @@ def _construir_ui(win, sociedades: list):
 
         def _tarea():
             try:
-                _, cur_sig, _, _ = get_connections()
+                conn_sig, cur_sig, _, _ = get_connections()
                 id_emp      = sociedades_dict[soc_sel]
                 tiendas_ids = obtener_tiendas_ids(id_emp)
                 logs        = cargar_logs_bd(cur_sig, tiendas_ids, ent_desde.get(), ent_hasta.get())
