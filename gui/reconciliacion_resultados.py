@@ -11,8 +11,14 @@ _COLS    = ("item",     "fecha",      "concepto", "ajuste",           "costo_sig
 _HEADERS = ["Artículo", "Fecha Reg.", "Concepto", "Cant. a Ingresar", "Precio Unit. SIG", "Almacén", "Centro de Costo", "Tienda",  "Stock SAP",  "Stock SIG",  "Cant. Salida", "ID Mov"]
 _WIDTHS  = [140,        100,          215,        120,                110,                75,        110,               90,        110,          110,          100,            95]
 
+# Colores compartidos entre leyenda y tags del Treeview
+_COL_NIV  = "#F0D060"  # amarillo dorado — NIVELACIÓN
+_COL_PRIM = "#5DC87A"  # verde medio     — COLA Primaria
+_COL_SEC  = "#E8973A"  # naranja         — COLA Secundaria
+_COL_SEL  = "#2962A8"  # azul selección  — highlight al copiar columna
 
-def mostrar_ventana_resultados(parent, df_ajustes, soc_sel: str, n_logs_bd: int = 0):
+
+def mostrar_ventana_resultados(parent, df_ajustes, soc_sel: str, n_logs_bd: int = 0, on_migrado=None):
     top = tb.Toplevel(parent)
     top.title(f"Panel de Ajustes Directo SAP - {soc_sel}")
     top.geometry("1450x750")
@@ -22,6 +28,10 @@ def mostrar_ventana_resultados(parent, df_ajustes, soc_sel: str, n_logs_bd: int 
         df_ajustes = None
         top.destroy()
     top.protocol("WM_DELETE_WINDOW", on_closing)
+
+    # btn_frame debe empaquetarse ANTES que main_frame para que siempre sea visible
+    btn_frame = tb.Frame(top)
+    btn_frame.pack(side="bottom", fill="x", padx=10, pady=10)
 
     main_frame = tb.Frame(top, padding=10)
     main_frame.pack(fill="both", expand=True)
@@ -120,14 +130,14 @@ def mostrar_ventana_resultados(parent, df_ajustes, soc_sel: str, n_logs_bd: int 
             tab_frame = tb.Frame(notebook, padding=5)
             notebook.add(tab_frame, text=f" Fecha: {tab_name} ")
 
-            legend_frame = tb.Frame(tab_frame)
+            # ── Leyenda — mismos colores que los tags del Treeview ──────────────
+            legend_frame = tk.Frame(tab_frame)
             legend_frame.pack(fill="x", pady=(0, 4))
-            for color, texto in [("#F5F0AE", "NIVELACIÓN"),
-                                  ("#B5EAD7", "COLA Primaria"),
-                                  ("#FFD8A8", "COLA Secundaria")]:
-                tk.Label(legend_frame, text=f"  {texto}  ", bg=color, fg="black",
-                         relief="solid", borderwidth=1,
-                         font=("Segoe UI", 8, "bold")).pack(side="left", padx=4)
+            for color, texto in [(_COL_NIV, "NIVELACIÓN"), (_COL_PRIM, "COLA Primaria"), (_COL_SEC, "COLA Secundaria")]:
+                chip = tk.Frame(legend_frame, bg=color, bd=1, relief="solid")
+                chip.pack(side="left", padx=4, pady=2)
+                tk.Label(chip, text=f"  {texto}  ", bg=color, fg="black",
+                         font=("Segoe UI", 8, "bold"), padx=2, pady=2).pack()
 
             lbl_status = tk.Label(
                 tab_frame,
@@ -147,6 +157,23 @@ def mostrar_ventana_resultados(parent, df_ajustes, soc_sel: str, n_logs_bd: int 
 
             def _cmd_copiar(t, lbl, idx, nombre_col):
                 def _copiar():
+                    # Recorrer todos los items (padres e hijos)
+                    def _all_items(parent=""):
+                        result = []
+                        for iid in t.get_children(parent):
+                            result.append(iid)
+                            result.extend(_all_items(iid))
+                        return result
+
+                    all_iids = _all_items()
+                    original_tags = {iid: t.item(iid, 'tags') for iid in all_iids}
+
+                    # Aplicar highlight tipo selección Excel
+                    t.tag_configure('col_highlight', background=_COL_SEL, foreground="white")
+                    for iid in all_iids:
+                        t.item(iid, tags=('col_highlight',))
+
+                    # Copiar valores de filas de totales (top-level)
                     valores = []
                     for iid in t.get_children():
                         vals = t.item(iid, 'values')
@@ -162,6 +189,16 @@ def mostrar_ventana_resultados(parent, df_ajustes, soc_sel: str, n_logs_bd: int 
                         )
                     else:
                         lbl.config(text="Sin datos para copiar.", fg="#FF6B6B")
+
+                    # Restaurar tags originales tras 1.2 s
+                    def _restore():
+                        for iid, tags in original_tags.items():
+                            try:
+                                t.item(iid, tags=tags)
+                            except Exception:
+                                pass
+                    t.after(1200, _restore)
+
                 return _copiar
 
             for i, (col, head, w) in enumerate(zip(_COLS, _HEADERS, _WIDTHS)):
@@ -175,10 +212,10 @@ def mostrar_ventana_resultados(parent, df_ajustes, soc_sel: str, n_logs_bd: int 
             sb_v.pack(fill="y", side="left")
             sb_h.pack(fill="x", side="bottom")
 
-            tree.tag_configure('nivelacion', background="#F3E963", foreground="black", font=('Segoe UI', 9, 'bold'))
-            tree.tag_configure('cola_prim',  background="#31F03B", foreground="black", font=('Segoe UI', 9, 'bold'))
-            tree.tag_configure('cola_sec',   background="#F89E31", foreground="black", font=('Segoe UI', 9, 'bold'))
-            tree.tag_configure('total_row',  background="#000000", foreground="white", font=('Segoe UI', 12, 'bold'))
+            tree.tag_configure('nivelacion', background=_COL_NIV,  foreground="black", font=('Segoe UI', 9, 'bold'))
+            tree.tag_configure('cola_prim',  background=_COL_PRIM, foreground="black", font=('Segoe UI', 9, 'bold'))
+            tree.tag_configure('cola_sec',   background=_COL_SEC,  foreground="black", font=('Segoe UI', 9, 'bold'))
+            tree.tag_configure('total_row',  background="#000000",  foreground="white", font=('Segoe UI', 12, 'bold'))
 
             df_sheet = df[df['Fecha_Grupo'] == fg].copy()
             for (id_sig, item_code), df_group in df_sheet.groupby(['ID_SIG', 'ItemCode'], sort=False):
@@ -228,12 +265,13 @@ def mostrar_ventana_resultados(parent, df_ajustes, soc_sel: str, n_logs_bd: int 
 
     construir_tabs(_df_activo())
 
-    # ── Botones de acción ──────────────────────────────────────────────────────
-    btn_frame = tb.Frame(top)
-    btn_frame.pack(fill="x", padx=10, pady=10)
+    # ── Botones de acción (btn_frame ya fue empaquetado arriba con side="bottom") ─
     tb.Button(btn_frame, text="📥 Generar Excel de Auditoría", bootstyle="success",
               command=lambda: exportar_excel(_df_activo, soc_sel)
               ).pack(side="left", expand=True, fill="x", padx=(0, 6))
     tb.Button(btn_frame, text="🗄 Migrar a BD Local", bootstyle="primary",
-              command=lambda: migrar_bd_local(df_ajustes, soc_sel, top)
+              command=lambda: migrar_bd_local(
+                  df_ajustes, soc_sel, top,
+                  on_success=lambda: on_migrado(soc_sel) if on_migrado else None
+              )
               ).pack(side="left", expand=True, fill="x")

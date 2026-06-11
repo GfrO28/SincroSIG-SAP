@@ -28,7 +28,7 @@ def _bytes_to_mysql_latin1(s: str) -> str:
 def _encrypt_clave(alias: str, psw: str) -> str:
     """
     Replica de Encriptar(USU, PSW) del SIG VB.NET.
-    USU = campo `alias` del usuario (ej: "52392-CCATAMAYO").
+    USU = campo `alias` del usuario (ej: "50650-GLLANOS").
 
     Paso 1: XOR de cada char del PSW con _CLAVE cíclica → hex uppercase 2 dígitos por char
     Paso 2: Cada char del hex se suma con el char de alias cíclico (índice +1 en VB → (i+1)%len)

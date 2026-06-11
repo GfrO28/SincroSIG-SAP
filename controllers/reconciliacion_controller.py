@@ -53,6 +53,26 @@ def _construir_ui(win, sociedades: list):
     cbo_sociedad['values'] = [s['rs1'] for s in sociedades]
     cbo_sociedad.pack(pady=5)
 
+    # ── Indicador de sociedades migradas esta sesión ───────────────────────────
+    import tkinter as tk
+    _migradas_sesion: list = []
+
+    migradas_bar = tk.Frame(container, bg="#0f2a0f", bd=1, relief="solid")
+    migradas_bar.pack(fill="x", pady=(2, 0))
+    tk.Label(migradas_bar, text="Migradas esta sesión:", bg="#0f2a0f", fg="#aaaaaa",
+             font=("Segoe UI", 8)).pack(side="left", padx=(10, 6), pady=4)
+    _lbl_migradas = tk.Label(migradas_bar, text="—", bg="#0f2a0f", fg="#555555",
+                             font=("Segoe UI", 8, "italic"))
+    _lbl_migradas.pack(side="left", pady=4)
+
+    def _on_migrado(soc_sel: str):
+        if soc_sel not in _migradas_sesion:
+            _migradas_sesion.append(soc_sel)
+        _lbl_migradas.config(
+            text="  |  ".join(_migradas_sesion),
+            fg="#6BCB77"
+        )
+
     frame_fechas = tb.LabelFrame(container, text=" 2. Rango de Fechas ")
     frame_fechas.pack(fill="x", pady=15, padx=10)
 
@@ -193,7 +213,7 @@ def _construir_ui(win, sociedades: list):
                     win.after(0, lambda: messagebox.showinfo("Info", "Sin diferencias."))
                 else:
                     win.after(0, lambda f=df_final, n=n_logs_bd:
-                              mostrar_ventana_resultados(win, f, soc_sel, n))
+                              mostrar_ventana_resultados(win, f, soc_sel, n, on_migrado=_on_migrado))
             except Exception as e:
                 win.after(0, lambda m=str(e): messagebox.showerror("Error", m))
             finally:

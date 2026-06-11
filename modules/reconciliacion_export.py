@@ -107,14 +107,15 @@ def exportar_excel(df_fn, soc_sel: str) -> None:
         messagebox.showerror("Error", f"Fallo al exportar: {e}")
 
 
-def migrar_bd_local(df_ajustes: pd.DataFrame, soc_sel: str, parent_widget) -> None:
+def migrar_bd_local(df_ajustes: pd.DataFrame, soc_sel: str, parent_widget, on_success=None) -> None:
     """
     Inserta los ajustes en la tabla local incidencias_salidas en un hilo de fondo.
 
     Args:
-        df_ajustes: DataFrame con todos los ajustes a migrar.
-        soc_sel: nombre de la sociedad (guardado como columna 'sociedad').
+        df_ajustes:    DataFrame con todos los ajustes a migrar.
+        soc_sel:       nombre de la sociedad (guardado como columna 'sociedad').
         parent_widget: widget Tk usado para anclar ProgressWindow y mensajes after().
+        on_success:    callback opcional sin argumentos, llamado tras inserción exitosa.
     """
     progress = ProgressWindow(parent_widget, "Migrando a BD local...")
 
@@ -160,6 +161,8 @@ def migrar_bd_local(df_ajustes: pd.DataFrame, soc_sel: str, parent_widget) -> No
                 f"Lote ID: {lid}\n\n"
                 f"Puedes conectar Power BI a la tabla 'incidencias_salidas'."
             ))
+            if on_success:
+                parent_widget.after(0, on_success)
         except Exception as e:
             parent_widget.after(0, lambda m=str(e): messagebox.showerror(
                 "Error BD", f"No se pudo migrar:\n{m}"
