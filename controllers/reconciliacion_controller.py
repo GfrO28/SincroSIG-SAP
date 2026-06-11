@@ -241,7 +241,6 @@ def mostrar_ventana_resultados(parent, df_ajustes, soc_sel, n_logs_bd=0):
     widths  = [140,        100,          215,        120,                110,                75,        110,               90,        110,          110,          100,            95]
 
     style = ttk.Style()
-    style.configure("Treeview", rowheight=25)
     for _tab_style in ("TNotebook.Tab", "info.TNotebook.Tab"):
         style.map(_tab_style, foreground=[("selected", "#FFFFFF"), ("!selected", "#1a1a1a")])
 
@@ -300,6 +299,10 @@ def mostrar_ventana_resultados(parent, df_ajustes, soc_sel, n_logs_bd=0):
 
             tree = ttk.Treeview(tree_container, columns=cols, show="tree headings", height=20)
             tree.column("#0", width=26, stretch=False, minwidth=26)
+            # Forzar rowheight via Tcl/Tk directo — ttkbootstrap sobreescribe ttk.Style
+            tree.tk.call("ttk::style", "configure", "Treeview", "-rowheight", 25)
+            tree.tk.call("ttk::style", "configure", "Treeview", "-font", ("Segoe UI", 9))
+            tree.tk.call("ttk::style", "configure", "Treeview.Heading", "-font", ("Segoe UI", 9, "bold"))
 
             def _cmd_copiar(t, lbl, idx, nombre_col):
                 def _copiar():
@@ -450,7 +453,67 @@ def mostrar_ventana_resultados(parent, df_ajustes, soc_sel, n_logs_bd=0):
         except Exception as e:
             messagebox.showerror("Error", f"Fallo al exportar: {e}")
 
-    tb.Button(top, text="📥 Generar Excel de Auditoría", bootstyle="success", command=exportar_excel_pestañas).pack(pady=10)
+    def migrar_bd_local():
+        import uuid
+        from config.db import get_local_db_connection
+
+        INSERT_SQL = """
+            INSERT INTO incidencias_salidas
+              (lote_id, fecha_carga, sociedad, fecha_proceso,
+               item_code, id_tienda, whs_code, tipo_incidencia)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
+        """
+
+
+        progress = ProgressWindow(top, "Migrando a BD local...")
+
+        def tarea():
+            try:
+                conn, cur = get_local_db_connection()
+                lote_id    = str(uuid.uuid4())
+                fecha_carga = datetime.now()
+                rows = []
+                for _, row in df_ajustes.iterrows():
+                    raw_fecha = str(row.get('Fecha', ''))
+                    fecha_p   = raw_fecha[:10] if raw_fecha[:10] not in ('SIN FECHA', 'S/F', 'Ajust') and len(raw_fecha) >= 10 else None
+                    try:
+                        id_tienda_fmt = f"P{int(row['ID_SIG']):04d}"
+                    except Exception:
+                        id_tienda_fmt = str(row['ID_SIG'])
+                    concepto_txt = str(row.get('Concepto', ''))
+                    if 'NIVELACI' in concepto_txt.upper():
+                        tipo_inc = 'NIVELACION'
+                    elif bool(row.get('Is_Primary', True)):
+                        tipo_inc = 'COLA_PRIMARIA'
+                    else:
+                        tipo_inc = 'COLA_SECUNDARIA'
+
+                    rows.append((
+                        lote_id, fecha_carga, soc_sel, fecha_p,
+                        str(row['ItemCode']), id_tienda_fmt, str(row['WhsCode']),
+                        tipo_inc,
+                    ))
+                cur.executemany(INSERT_SQL, rows)
+                conn.commit()
+                cur.close()
+                conn.close()
+                top.after(0, lambda n=len(rows), lid=lote_id: messagebox.showinfo(
+                    "Migración exitosa",
+                    f"{n} registros insertados en 'incidencias_salidas'.\n\nLote ID: {lid}\n\nPuedes conectar Power BI a la tabla 'incidencias_salidas'."
+                ))
+            except Exception as e:
+                top.after(0, lambda m=str(e): messagebox.showerror("Error BD", f"No se pudo migrar:\n{m}"))
+            finally:
+                progress.close()
+
+        threading.Thread(target=tarea, daemon=True).start()
+
+    btn_frame = tb.Frame(top)
+    btn_frame.pack(fill="x", padx=10, pady=10)
+    tb.Button(btn_frame, text="📥 Generar Excel de Auditoría", bootstyle="success",
+              command=exportar_excel_pestañas).pack(side="left", expand=True, fill="x", padx=(0, 6))
+    tb.Button(btn_frame, text="🗄 Migrar a BD Local", bootstyle="primary",
+              command=migrar_bd_local).pack(side="left", expand=True, fill="x")
 
 # ==========================================
 # 🪟 VENTANA DE PREVISUALIZACIÓN SAP
@@ -893,5 +956,94 @@ def abrir_interfaz_reconciliacion(root):
                   bootstyle="info").pack(side="left", expand=True, fill="x")
         tb.Button(container, text="2. Cargar SAP y Cruzar",
                   command=lanzar_cruce, bootstyle="success").pack(fill="x", pady=(2, 0))
+
+        ttk.Separator(container, orient="horizontal").pack(fill="x", pady=(14, 6))
+
+        def cargar_desde_excel():
+            path = filedialog.askopenfilename(
+                title="Seleccionar Excel de Auditoría exportado",
+                filetypes=[("Excel files", "*.xlsx")]
+            )
+            if not path:
+                return
+            try:
+                xl  = pd.ExcelFile(path)
+                dfs = []
+                for sheet in xl.sheet_names:
+                    df_s = xl.parse(sheet)
+                    if df_s.empty:
+                        continue
+
+                    # ── Eliminar filas de TOTAL ──────────────────────────────
+                    # Formato nuevo: Concepto == 'SUMATORIA TOTAL'
+                    # Formato antiguo: merge_range dejaba ItemCode = 'TOTAL ARTÍCULO:...'
+                    #   y Concepto = NaN (float) → causa el error 'float is not iterable'
+                    if 'ItemCode' in df_s.columns:
+                        df_s = df_s[~df_s['ItemCode'].astype(str).str.startswith('TOTAL')]
+                        df_s = df_s.dropna(subset=['ItemCode'])
+                        df_s = df_s[df_s['ItemCode'].astype(str).str.strip() != '']
+                    if 'Concepto' in df_s.columns:
+                        df_s = df_s[df_s['Concepto'].astype(str) != 'SUMATORIA TOTAL']
+
+                    if df_s.empty:
+                        continue
+
+                    # ── Rellenar NaN en columnas de texto ────────────────────
+                    for str_col in ('Concepto', 'ID_Movimiento', 'WhsCode'):
+                        if str_col in df_s.columns:
+                            df_s[str_col] = df_s[str_col].fillna('').astype(str).str.strip()
+
+                    # ── Fecha: normalizar a 'YYYY-MM-DD' (Timestamp o string) ─
+                    if 'Fecha' in df_s.columns:
+                        df_s['Fecha'] = (pd.to_datetime(df_s['Fecha'], errors='coerce')
+                                         .dt.strftime('%Y-%m-%d')
+                                         .fillna(''))
+
+                    # ── ID_SIG: P0022 → 22  /  22.0 → 22  /  22 → 22 ─────────
+                    if 'ID_SIG' in df_s.columns:
+                        df_s['ID_SIG'] = (df_s['ID_SIG'].fillna('').astype(str).str.strip()
+                                          .str.replace(r'\.0$', '', regex=True)
+                                          .str.replace(r'^P0*', '', regex=True))
+
+                    # ── Fecha_Grupo = nombre de la pestaña ───────────────────
+                    df_s['Fecha_Grupo'] = sheet
+
+                    # ── Inferir Is_Primary y Prioridad desde Concepto ─────────
+                    if 'Is_Primary' not in df_s.columns:
+                        df_s['Is_Primary'] = ~df_s['Concepto'].str.contains('NIVELACIÓN', na=False)
+                    if 'Prioridad' not in df_s.columns:
+                        df_s['Prioridad'] = df_s['Concepto'].apply(
+                            lambda c: 0 if 'NIVELACIÓN' in str(c) else 1
+                        )
+
+                    # ── Garantizar columnas numéricas ─────────────────────────
+                    for num_col in ('Monto_A_Ingresar', 'Stock_A_Fecha', 'Stock_SIG', 'Movimiento', 'Costo_SIG'):
+                        if num_col in df_s.columns:
+                            df_s[num_col] = pd.to_numeric(df_s[num_col], errors='coerce').fillna(0.0)
+
+                    dfs.append(df_s)
+
+                if not dfs:
+                    messagebox.showwarning("Sin datos", "No se encontraron datos válidos en el archivo.")
+                    return
+
+                df_combined = pd.concat(dfs, ignore_index=True)
+                df_combined = df_combined.sort_values(
+                    by=['Fecha_Grupo', 'ID_SIG', 'ItemCode', 'Prioridad', 'Fecha'],
+                    ignore_index=True
+                )
+
+                import os as _os
+                nombre_archivo = _os.path.basename(path)
+                partes = nombre_archivo.replace('ajustes_', '').rsplit('_', 2)
+                soc_nombre = partes[0] if len(partes) >= 2 else nombre_archivo
+
+                mostrar_ventana_resultados(win, df_combined, soc_nombre)
+
+            except Exception as e:
+                messagebox.showerror("Error", f"No se pudo cargar el archivo:\n{e}")
+
+        tb.Button(container, text="📂 Cargar desde Excel exportado",
+                  command=cargar_desde_excel, bootstyle="secondary").pack(fill="x", pady=(0, 4))
 
     threading.Thread(target=cargar_sociedades, daemon=True).start()
