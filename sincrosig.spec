@@ -28,6 +28,7 @@ hiddenimports = (
         "tkinter.messagebox",
         "tkinter.filedialog",
         "openpyxl",
+        "xlsxwriter",
         "pandas",
         "numpy",
     ]
