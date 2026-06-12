@@ -1,5 +1,6 @@
 # gui/login_window.py
 
+import queue
 import tkinter as tk
 from tkinter import ttk, messagebox
 import threading
@@ -22,7 +23,7 @@ def mostrar_login(parent, on_success):
     win.grab_set()
 
     win.update_idletasks()
-    w, h = 420, 560
+    w, h = 420, 640
     sw   = win.winfo_screenwidth()
     sh   = win.winfo_screenheight()
     win.geometry(f"{w}x{h}+{(sw-w)//2}+{(sh-h)//2}")
@@ -116,17 +117,28 @@ def mostrar_login(parent, on_success):
         btn_update.config(state="disabled", text="Verificando…")
         win.update()
 
+        _q = queue.Queue()
+
         def _tarea():
             try:
                 from modules.updater import verificar_actualizacion
                 info = verificar_actualizacion()
-                win.after(0, lambda: _mostrar_resultado(info))
-            except ConnectionError as e:
-                win.after(0, lambda m=str(e): _error_update(m))
+                _q.put(("ok", info))
             except Exception as e:
-                win.after(0, lambda m=str(e): _error_update(m))
+                _q.put(("error", str(e)))
+
+        def _poll():
+            try:
+                tipo, payload = _q.get_nowait()
+                if tipo == "ok":
+                    _mostrar_resultado(payload)
+                else:
+                    _error_update(payload)
+            except queue.Empty:
+                win.after(100, _poll)
 
         threading.Thread(target=_tarea, daemon=True).start()
+        win.after(100, _poll)
 
     def _mostrar_resultado(info):
         if info is None:
