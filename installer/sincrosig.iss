@@ -1,9 +1,9 @@
 ; installer/sincrosig.iss — Inno Setup 6
-; Genera: SincroSIG_Setup_1.0.1.exe
+; Genera: SincroSIG_Setup_1.0.2.exe
 ; Instala por usuario (sin UAC), acceso directo en escritorio + menú inicio.
 
 #define AppName      "SincroSIG"
-#define AppVersion   "1.0.1"
+#define AppVersion   "1.0.2"
 #define AppExeName   "SincroSIG.exe"
 #define AppPublisher "SincroSIG"
 #define SourceDir    "..\dist\SincroSIG"

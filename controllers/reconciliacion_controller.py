@@ -55,23 +55,34 @@ def _construir_ui(win, sociedades: list):
 
     # ── Indicador de sociedades migradas esta sesión ───────────────────────────
     import tkinter as tk
-    _migradas_sesion: list = []
 
-    migradas_bar = tk.Frame(container, bg="#0f2a0f", bd=1, relief="solid")
-    migradas_bar.pack(fill="x", pady=(2, 0))
-    tk.Label(migradas_bar, text="Migradas esta sesión:", bg="#0f2a0f", fg="#aaaaaa",
-             font=("Segoe UI", 8)).pack(side="left", padx=(10, 6), pady=4)
-    _lbl_migradas = tk.Label(migradas_bar, text="—", bg="#0f2a0f", fg="#555555",
-                             font=("Segoe UI", 8, "italic"))
-    _lbl_migradas.pack(side="left", pady=4)
+    migradas_frame = tk.Frame(container, bg="#0f2a0f", bd=1, relief="solid")
+    migradas_frame.pack(fill="x", pady=(2, 0))
+    tk.Label(migradas_frame, text="Migradas esta sesión:", bg="#0f2a0f", fg="#aaaaaa",
+             font=("Segoe UI", 8, "bold")).pack(anchor="w", padx=(10, 6), pady=(4, 1))
+    txt_migradas = tk.Text(
+        migradas_frame, bg="#0f2a0f", fg="#555555",
+        font=("Segoe UI", 8), height=3, bd=0,
+        state="disabled", wrap="none", cursor="arrow",
+        selectbackground="#0f2a0f",
+    )
+    txt_migradas.pack(fill="x", padx=10, pady=(0, 4))
+    txt_migradas.tag_config("entry", foreground="#6BCB77")
+    tk.Label(migradas_frame, text="—  sin migraciones aún",
+             bg="#0f2a0f", fg="#555555", font=("Segoe UI", 8, "italic"),
+             name="lbl_placeholder").pack(anchor="w", padx=10, pady=(0, 4))
 
     def _on_migrado(soc_sel: str):
-        if soc_sel not in _migradas_sesion:
-            _migradas_sesion.append(soc_sel)
-        _lbl_migradas.config(
-            text="  |  ".join(_migradas_sesion),
-            fg="#6BCB77"
-        )
+        # Ocultar placeholder la primera vez
+        try:
+            migradas_frame.nametowidget("lbl_placeholder").pack_forget()
+        except Exception:
+            pass
+        timestamp = datetime.now().strftime("%d/%m/%Y  %H:%M")
+        txt_migradas.config(state="normal")
+        txt_migradas.insert("end", f"✓  {timestamp}  —  {soc_sel}\n", "entry")
+        txt_migradas.config(state="disabled")
+        txt_migradas.see("end")
 
     frame_fechas = tb.LabelFrame(container, text=" 2. Rango de Fechas ")
     frame_fechas.pack(fill="x", pady=15, padx=10)
@@ -81,7 +92,7 @@ def _construir_ui(win, sociedades: list):
     _primer_dia = _hoy.replace(day=1)
 
     tb.Label(frame_fechas, text="Desde:", font=("Segoe UI", 9)).grid(row=0, column=0, padx=(10, 2), pady=10)
-    ent_desde = CampoFecha(frame_fechas, initialdate=_primer_dia)
+    ent_desde = CampoFecha(frame_fechas, initialdate=_ayer)
     ent_desde.grid(row=0, column=1, padx=5, pady=10)
 
     tb.Label(frame_fechas, text="Hasta:", font=("Segoe UI", 9)).grid(row=0, column=2, padx=(15, 2))
@@ -92,6 +103,9 @@ def _construir_ui(win, sociedades: list):
     def func_generar_query():
         soc_sel = cbo_sociedad.get()
         if not soc_sel:
+            messagebox.showwarning("Sociedad requerida",
+                                   "Seleccione una sociedad antes de continuar.",
+                                   parent=win)
             return
         id_emp   = sociedades_dict[soc_sel]
         progress = ProgressWindow(win, "Generando Query SAP (Primarios + Secundarios)...")
@@ -146,6 +160,9 @@ def _construir_ui(win, sociedades: list):
     def lanzar_cruce():
         soc = cbo_sociedad.get()
         if not soc:
+            messagebox.showwarning("Sociedad requerida",
+                                   "Seleccione una sociedad antes de continuar.",
+                                   parent=win)
             return
         if _ref_entrada[0] is not None and _ref_entrada[0].winfo_exists():
             _ref_entrada[0].lift()

@@ -1,12 +1,25 @@
 # gui/login_window.py
 
 import queue
+import sys
+from pathlib import Path
 import tkinter as tk
 from tkinter import ttk, messagebox
 import threading
 import ttkbootstrap as tb
+from PIL import Image, ImageTk
 
 from version import __version__, APP_NAME
+
+
+def _load_logo(size: int = 64) -> ImageTk.PhotoImage | None:
+    base = Path(sys.executable).parent if getattr(sys, "frozen", False) else Path(__file__).parent.parent
+    ico  = base / "assets" / "icon.ico"
+    try:
+        img = Image.open(ico).convert("RGBA").resize((size, size), Image.LANCZOS)
+        return ImageTk.PhotoImage(img)
+    except Exception:
+        return None
 
 
 def mostrar_login(parent, on_success):
@@ -22,6 +35,13 @@ def mostrar_login(parent, on_success):
     win.resizable(False, False)
     win.grab_set()
 
+    # Icono de ventana y taskbar
+    try:
+        base = Path(sys.executable).parent if getattr(sys, "frozen", False) else Path(__file__).parent.parent
+        win.iconbitmap(str(base / "assets" / "icon.ico"))
+    except Exception:
+        pass
+
     win.update_idletasks()
     w, h = 420, 640
     sw   = win.winfo_screenwidth()
@@ -36,8 +56,13 @@ def mostrar_login(parent, on_success):
     card.pack(fill="both", expand=True, padx=30, pady=(30, 8))
 
     # Logo / título
-    tb.Label(card, text="⚙", font=("Segoe UI Emoji", 42),
-             bootstyle="info").pack()
+    _logo_img = _load_logo(64)
+    if _logo_img:
+        lbl_logo = tk.Label(card, image=_logo_img, bg=card.cget("background") if hasattr(card, "cget") else "#2b2b2b")
+        lbl_logo.image = _logo_img  # evitar GC
+        lbl_logo.pack()
+    else:
+        tb.Label(card, text="🔄", font=("Segoe UI Emoji", 42), bootstyle="info").pack()
     tb.Label(card, text=APP_NAME,
              font=("Segoe UI", 22, "bold")).pack(pady=(4, 0))
     tb.Label(card, text="Sistema de Sincronización SAP · SIG",

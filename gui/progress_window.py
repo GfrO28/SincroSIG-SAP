@@ -17,9 +17,10 @@ class ProgressWindow:
         self._win.protocol("WM_DELETE_WINDOW", lambda: None)  # no cerrable manualmente
 
         w, h = 400, 130
-        sw = self._win.winfo_screenwidth()
-        sh = self._win.winfo_screenheight()
-        self._win.geometry(f"{w}x{h}+{(sw-w)//2}+{(sh-h)//2}")
+        self._win.update_idletasks()
+        px = parent.winfo_rootx() + (parent.winfo_width()  - w) // 2
+        py = parent.winfo_rooty() + (parent.winfo_height() - h) // 2
+        self._win.geometry(f"{w}x{h}+{max(0, px)}+{max(0, py)}")
 
         frame = tb.Frame(self._win, padding=20)
         frame.pack(fill="both", expand=True)

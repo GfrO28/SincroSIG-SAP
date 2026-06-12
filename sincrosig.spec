@@ -9,6 +9,8 @@ block_cipher = None
 
 # ── Datos adicionales a empaquetar ─────────────────────────────────────────────
 datas = []
+# Icono y assets propios de la app
+datas += [("assets", "assets")]
 # ttkbootstrap themes / assets
 datas += collect_data_files("ttkbootstrap")
 # Pillow plugins (iconos, imágenes)
@@ -69,7 +71,7 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
     version="file_version_info.txt",        # metadatos Windows
-    # icon="assets/icon.ico",              # descomentar si tenés un .ico
+    icon="assets/icon.ico",
 )
 
 coll = COLLECT(
