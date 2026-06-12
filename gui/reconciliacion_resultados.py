@@ -157,25 +157,18 @@ def mostrar_ventana_resultados(parent, df_ajustes, soc_sel: str, n_logs_bd: int 
 
             def _cmd_copiar(t, lbl, idx, nombre_col):
                 def _copiar():
-                    # Recorrer todos los items (padres e hijos)
-                    def _all_items(parent=""):
-                        result = []
-                        for iid in t.get_children(parent):
-                            result.append(iid)
-                            result.extend(_all_items(iid))
-                        return result
+                    # Solo las filas top-level son las que se copian
+                    top_iids = list(t.get_children())
+                    original_tags = {iid: t.item(iid, 'tags') for iid in top_iids}
 
-                    all_iids = _all_items()
-                    original_tags = {iid: t.item(iid, 'tags') for iid in all_iids}
-
-                    # Aplicar highlight tipo selección Excel
+                    # Highlight solo en las filas que se copian
                     t.tag_configure('col_highlight', background=_COL_SEL, foreground="white")
-                    for iid in all_iids:
+                    for iid in top_iids:
                         t.item(iid, tags=('col_highlight',))
 
-                    # Copiar valores de filas de totales (top-level)
+                    # Copiar valores de esas mismas filas
                     valores = []
-                    for iid in t.get_children():
+                    for iid in top_iids:
                         vals = t.item(iid, 'values')
                         if vals and idx < len(vals):
                             v = str(vals[idx]).strip()

@@ -58,7 +58,7 @@ def mostrar_login(parent, on_success):
     # Logo / título
     _logo_img = _load_logo(64)
     if _logo_img:
-        lbl_logo = tk.Label(card, image=_logo_img, bg=card.cget("background") if hasattr(card, "cget") else "#2b2b2b")
+        lbl_logo = tb.Label(card, image=_logo_img)
         lbl_logo.image = _logo_img  # evitar GC
         lbl_logo.pack()
     else:
@@ -174,7 +174,7 @@ def mostrar_login(parent, on_success):
             )
             messagebox.showinfo(
                 "Sin actualizaciones",
-                f"Ya tenés la versión más reciente.\n\nVersión actual: v{__version__}",
+                f"Ya tienes la versión más reciente.\n\nVersión actual: v{__version__}",
                 parent=win,
             )
             return
