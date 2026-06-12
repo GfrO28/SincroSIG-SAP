@@ -5,26 +5,31 @@ echo ============================================================
 echo  SincroSIG - Build Script
 echo ============================================================
 
-:: Verificar PyInstaller
+:: Detectar PyInstaller (primero en PATH, luego en Python 3.12)
+set PYI=pyinstaller
 where pyinstaller >nul 2>&1
 if errorlevel 1 (
-    echo [ERROR] PyInstaller no encontrado. Instalar con: pip install pyinstaller
-    pause & exit /b 1
+    set PYI=C:\Users\gfrov\AppData\Local\Programs\Python\Python312\Scripts\pyinstaller.exe
+    if not exist !PYI! (
+        echo [ERROR] PyInstaller no encontrado. Instalar con:
+        echo         C:\Users\gfrov\AppData\Local\Programs\Python\Python312\python.exe -m pip install pyinstaller
+        pause & exit /b 1
+    )
 )
 
-:: Verificar Inno Setup
+:: Verificar Inno Setup (rutas habituales + instalación winget en %LOCALAPPDATA%)
 set ISC="C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
 if not exist %ISC% set ISC="C:\Program Files\Inno Setup 6\ISCC.exe"
+if not exist %ISC% set ISC="%LOCALAPPDATA%\Programs\Inno Setup 6\ISCC.exe"
 if not exist %ISC% (
-    echo [WARN] Inno Setup no encontrado en rutas por defecto.
-    echo        Instalar desde: https://jrsoftware.org/isdl.php
+    echo [WARN] Inno Setup no encontrado. Instalar con: winget install JRSoftware.InnoSetup
     echo        O ajustar la variable ISC en este script.
     set SKIP_ISS=1
 )
 
 echo.
 echo [1/2] Empaquetando con PyInstaller...
-pyinstaller sincrosig.spec --clean --noconfirm
+%PYI% sincrosig.spec --clean --noconfirm
 if errorlevel 1 (
     echo [ERROR] PyInstaller falló.
     pause & exit /b 1
