@@ -303,6 +303,18 @@ def export_excel(
             print(f"❌ Error exportando Excel: {e}")
             return ""
         
+def set_window_icon(win):
+    import sys
+    from pathlib import Path
+    try:
+        base = (Path(sys.executable).parent
+                if getattr(sys, "frozen", False)
+                else Path(__file__).parent.parent)
+        win.iconbitmap(str(base / "assets" / "icon.ico"))
+    except Exception:
+        pass
+
+
 import os
 from datetime import datetime
 

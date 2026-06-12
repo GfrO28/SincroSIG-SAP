@@ -21,6 +21,7 @@ from controllers.validacion_controller import (
     abrir_validacion_formulaciones
 )
 from controllers.reconciliacion_controller import abrir_interfaz_reconciliacion
+from config.utils import set_window_icon
 
 # ── Íconos (Twemoji 14 via jsDelivr CDN) ─────────────────────────────────────
 _ICON_URLS = {
@@ -130,6 +131,7 @@ def iniciar_en_root(root, user_info: dict | None = None):
     root.geometry("880x580")
     root.resizable(False, False)
     root.deiconify()    # mostrar ventana que estaba oculta
+    set_window_icon(root)
 
     # limpiar widgets del login si quedaron (por seguridad)
     for w in root.winfo_children():
@@ -248,6 +250,7 @@ def _submenu(root, titulo, emoji, bg_header, items):
     sub.geometry(f"340x{70 + len(items) * 54}")
     sub.resizable(False, False)
     sub.grab_set()
+    set_window_icon(sub)
 
     # ── Header coloreado ──────────────────────────────────────
     hdr = tk.Frame(sub, bg=bg_header)

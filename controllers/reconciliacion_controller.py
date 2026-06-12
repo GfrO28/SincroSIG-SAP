@@ -1,5 +1,6 @@
 import os
 import threading
+import tkinter as tk
 from datetime import datetime, timedelta
 from tkinter import messagebox, filedialog, ttk
 
@@ -8,9 +9,9 @@ import pyperclip
 import ttkbootstrap as tb
 
 from config.db import get_connections
+from config.utils import set_window_icon
 from gui.progress_window import ProgressWindow
 from gui.widgets.calendar_widget import CampoFecha
-from gui.sap_input_window import VentanaEntradaSAP
 from gui.reconciliacion_resultados import mostrar_ventana_resultados
 from modules.reconciliacion_bd import obtener_sociedades, obtener_tiendas_ids, cargar_logs_bd, cargar_saldos
 from modules.reconciliacion_query import (
@@ -26,7 +27,8 @@ from modules.reconciliacion_sap_service import calcular_ajustes_tres_vias
 def abrir_interfaz_reconciliacion(root):
     win = tb.Toplevel(root)
     win.title("Reconciliación de Stock SAP")
-    win.geometry("700x500")
+    win.geometry("820x720")
+    set_window_icon(win)
 
     def _on_sociedades_cargadas(sociedades):
         win.after(0, lambda: _construir_ui(win, sociedades))
@@ -44,25 +46,97 @@ def abrir_interfaz_reconciliacion(root):
 def _construir_ui(win, sociedades: list):
     sociedades_dict = {s['rs1']: s['idempresas'] for s in sociedades}
 
-    container = tb.Frame(win, padding=20)
+    # Estado interno de datos SAP cargados
+    _df_sap   = [pd.DataFrame()]
+    _n_partes = [0]
+
+    container = tb.Frame(win, padding=16)
     container.pack(fill="both", expand=True)
 
+    # ── Sociedad ──────────────────────────────────────────────────────────────
     tb.Label(container, text="1. Seleccione Sociedad:",
              font=("Segoe UI", 9, "bold")).pack(anchor="w")
-    cbo_sociedad = tb.Combobox(container, state="readonly", width=70)
+    cbo_sociedad = tb.Combobox(container, state="readonly", width=80)
     cbo_sociedad['values'] = [s['rs1'] for s in sociedades]
-    cbo_sociedad.pack(pady=5)
+    cbo_sociedad.pack(pady=(2, 6))
+
+    # ── Rango de fechas ───────────────────────────────────────────────────────
+    frame_fechas = tb.LabelFrame(container, text=" 2. Rango de Fechas ")
+    frame_fechas.pack(fill="x", pady=(0, 6))
+
+    _hoy  = datetime.now().date()
+    _ayer = _hoy - timedelta(days=1)
+
+    tb.Label(frame_fechas, text="Desde:", font=("Segoe UI", 9)).grid(
+        row=0, column=0, padx=(10, 2), pady=8)
+    ent_desde = CampoFecha(frame_fechas, initialdate=_ayer)
+    ent_desde.grid(row=0, column=1, padx=5, pady=8)
+
+    tb.Label(frame_fechas, text="Hasta:", font=("Segoe UI", 9)).grid(
+        row=0, column=2, padx=(15, 2))
+    ent_hasta = CampoFecha(frame_fechas, initialdate=_ayer)
+    ent_hasta.grid(row=0, column=3, padx=5)
+
+    # ── Botón generar query + cargar Excel ────────────────────────────────────
+    frame_top_btns = tb.Frame(container)
+    frame_top_btns.pack(fill="x", pady=(0, 4))
+    tb.Button(frame_top_btns, text="1. Generar Query SAP",
+              bootstyle="info",
+              command=lambda: func_generar_query()
+              ).pack(side="left", expand=True, fill="x", padx=(0, 6))
+    tb.Button(frame_top_btns, text="📂 Cargar desde Excel exportado",
+              bootstyle="secondary",
+              command=lambda: cargar_desde_excel()
+              ).pack(side="left", expand=True, fill="x")
+
+    ttk.Separator(container, orient="horizontal").pack(fill="x", pady=(6, 4))
+
+    # ── Sección Data SAP ──────────────────────────────────────────────────────
+    sap_frame = tb.LabelFrame(container, text=" 2. Data SAP — pegue los resultados del query ")
+    sap_frame.pack(fill="both", expand=True, pady=(0, 4))
+
+    sap_btn_row = tb.Frame(sap_frame, padding=(4, 4, 4, 2))
+    sap_btn_row.pack(fill="x")
+    tb.Button(sap_btn_row, text="📋 Pegar Parte  (Ctrl+V)", bootstyle="info",
+              command=lambda: _pegar_sap()
+              ).pack(side="left", expand=True, fill="x", padx=(0, 6))
+    tb.Button(sap_btn_row, text="🗑 Limpiar", bootstyle="secondary",
+              command=lambda: _limpiar_sap_manual()
+              ).pack(side="left")
+
+    lbl_sap_estado = tb.Label(sap_frame, text="Sin datos cargados.",
+                               font=("Segoe UI", 9, "italic"), bootstyle="secondary")
+    lbl_sap_estado.pack(anchor="w", padx=8, pady=(0, 2))
+
+    sap_tree_frame = tb.Frame(sap_frame, padding=(4, 0, 4, 4))
+    sap_tree_frame.pack(fill="both", expand=True)
+
+    sap_cols = ("item", "whs", "stock")
+    sap_tree = ttk.Treeview(sap_tree_frame, columns=sap_cols, show="headings", height=8)
+    sap_tree.heading("item",  text="Artículo")
+    sap_tree.heading("whs",   text="Almacén")
+    sap_tree.heading("stock", text="Stock SAP")
+    for c in sap_cols:
+        sap_tree.column(c, width=240, anchor="center")
+
+    sap_sb = ttk.Scrollbar(sap_tree_frame, orient="vertical", command=sap_tree.yview)
+    sap_tree.configure(yscroll=sap_sb.set)
+    sap_tree.pack(fill="both", expand=True, side="left")
+    sap_sb.pack(fill="y", side="left")
+
+    # ── Botón procesar cruce ───────────────────────────────────────────────────
+    btn_procesar = tb.Button(container, text="🚀 Procesar Cruce", bootstyle="success",
+                             state="disabled", command=lambda: _do_cruce())
+    btn_procesar.pack(fill="x", pady=(4, 6))
 
     # ── Indicador de sociedades migradas esta sesión ───────────────────────────
-    import tkinter as tk
-
     migradas_frame = tk.Frame(container, bg="#0f2a0f", bd=1, relief="solid")
-    migradas_frame.pack(fill="x", pady=(2, 0))
+    migradas_frame.pack(fill="x")
     tk.Label(migradas_frame, text="Migradas esta sesión:", bg="#0f2a0f", fg="#aaaaaa",
              font=("Segoe UI", 8, "bold")).pack(anchor="w", padx=(10, 6), pady=(4, 1))
     txt_migradas = tk.Text(
         migradas_frame, bg="#0f2a0f", fg="#555555",
-        font=("Segoe UI", 8), height=3, bd=0,
+        font=("Segoe UI", 8), height=2, bd=0,
         state="disabled", wrap="none", cursor="arrow",
         selectbackground="#0f2a0f",
     )
@@ -72,34 +146,99 @@ def _construir_ui(win, sociedades: list):
              bg="#0f2a0f", fg="#555555", font=("Segoe UI", 8, "italic"),
              name="lbl_placeholder").pack(anchor="w", padx=10, pady=(0, 4))
 
-    def _on_migrado(soc_sel: str):
-        # Ocultar placeholder la primera vez
+    # ── Funciones auxiliares SAP ──────────────────────────────────────────────
+
+    def _limpiar_sap_vista():
+        for i in sap_tree.get_children():
+            sap_tree.delete(i)
+        lbl_sap_estado.config(text="Sin datos cargados.")
+        btn_procesar.config(state="disabled")
+
+    def _limpiar_sap_manual():
+        _df_sap[0] = pd.DataFrame()
+        _n_partes[0] = 0
+        _limpiar_sap_vista()
+
+    def _refrescar_sap():
+        _limpiar_sap_vista()
+        for _, row in _df_sap[0].iterrows():
+            sap_tree.insert("", "end", values=(
+                row.get('ItemCode', 'N/A'),
+                row.get('WhsCode',  'N/A'),
+                f"{float(row.get('Stock_A_Fecha', 0)):.4f}",
+            ))
+        n = len(_df_sap[0])
+        lbl_sap_estado.config(
+            text=f"{n} artículo(s) acumulados  ·  {_n_partes[0]} parte(s) pegada(s)."
+        )
+        btn_procesar.config(state="normal" if n > 0 else "disabled")
+
+    def _pegar_sap():
         try:
-            migradas_frame.nametowidget("lbl_placeholder").pack_forget()
+            df_nueva = pd.read_clipboard(sep='\t')
+            df_nueva.columns = [c.strip() for c in df_nueva.columns]
+            rename_map = {
+                'Número de artículo': 'ItemCode',
+                'Código de almacén':  'WhsCode',
+                'Stock_A_Fecha':      'Stock_A_Fecha',
+            }
+            df_nueva = df_nueva.rename(columns=rename_map)
+            if 'WhsCode' in df_nueva.columns:
+                df_nueva['WhsCode'] = (df_nueva['WhsCode']
+                                       .astype(str).str.strip().str.zfill(2))
+            if 'Stock_A_Fecha' in df_nueva.columns:
+                df_nueva['Stock_A_Fecha'] = (df_nueva['Stock_A_Fecha']
+                                              .astype(str).str.replace(',', '')
+                                              .astype(float))
+            if _df_sap[0].empty:
+                _df_sap[0] = df_nueva
+            else:
+                _df_sap[0] = (pd.concat([_df_sap[0], df_nueva], ignore_index=True)
+                              .drop_duplicates(subset=['ItemCode', 'WhsCode'], keep='last'))
+            _n_partes[0] += 1
+            _refrescar_sap()
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al leer datos: {e}", parent=win)
+
+    def _on_sociedad_changed(_event=None):
+        """Al cambiar de sociedad, limpia los datos SAP cargados para evitar cruces incorrectos."""
+        _df_sap[0]   = pd.DataFrame()
+        _n_partes[0] = 0
+        _limpiar_sap_vista()
+
+    cbo_sociedad.bind("<<ComboboxSelected>>", _on_sociedad_changed)
+
+    def _on_ctrl_v(event):
+        focused = win.focus_get()
+        try:
+            cls = focused.winfo_class() if focused else ""
         except Exception:
-            pass
-        timestamp = datetime.now().strftime("%d/%m/%Y  %H:%M")
-        txt_migradas.config(state="normal")
-        txt_migradas.insert("end", f"✓  {timestamp}  —  {soc_sel}\n", "entry")
-        txt_migradas.config(state="disabled")
-        txt_migradas.see("end")
+            cls = ""
+        if cls in ('TEntry', 'TCombobox', 'Entry', 'Combobox', 'Text'):
+            return
+        _pegar_sap()
+        return "break"
 
-    frame_fechas = tb.LabelFrame(container, text=" 2. Rango de Fechas ")
-    frame_fechas.pack(fill="x", pady=15, padx=10)
+    win.bind("<Control-v>", _on_ctrl_v)
 
-    _hoy        = datetime.now().date()
-    _ayer       = _hoy - timedelta(days=1)
-    _primer_dia = _hoy.replace(day=1)
+    # ── Función procesar cruce ────────────────────────────────────────────────
 
-    tb.Label(frame_fechas, text="Desde:", font=("Segoe UI", 9)).grid(row=0, column=0, padx=(10, 2), pady=10)
-    ent_desde = CampoFecha(frame_fechas, initialdate=_ayer)
-    ent_desde.grid(row=0, column=1, padx=5, pady=10)
+    def _do_cruce():
+        soc = cbo_sociedad.get()
+        if not soc:
+            messagebox.showwarning("Sociedad requerida",
+                                   "Seleccione una sociedad antes de continuar.",
+                                   parent=win)
+            return
+        if _df_sap[0].empty:
+            messagebox.showwarning("Sin datos SAP",
+                                   "Pegue los resultados del query SAP antes de procesar.",
+                                   parent=win)
+            return
+        _ejecutar_reconciliacion(_df_sap[0].copy(), soc)
 
-    tb.Label(frame_fechas, text="Hasta:", font=("Segoe UI", 9)).grid(row=0, column=2, padx=(15, 2))
-    ent_hasta = CampoFecha(frame_fechas, initialdate=_ayer)
-    ent_hasta.grid(row=0, column=3, padx=5)
+    # ── Función generar query ─────────────────────────────────────────────────
 
-    # ── Botón 1: Generar Query SAP ─────────────────────────────────────────────
     def func_generar_query():
         soc_sel = cbo_sociedad.get()
         if not soc_sel:
@@ -154,22 +293,18 @@ def _construir_ui(win, sociedades: list):
 
         threading.Thread(target=_tarea, daemon=True).start()
 
-    # ── Botón 2: Cargar SAP y Cruzar ──────────────────────────────────────────
-    _ref_entrada = [None]
+    # ── Función ejecutar reconciliación ───────────────────────────────────────
 
-    def lanzar_cruce():
-        soc = cbo_sociedad.get()
-        if not soc:
-            messagebox.showwarning("Sociedad requerida",
-                                   "Seleccione una sociedad antes de continuar.",
-                                   parent=win)
-            return
-        if _ref_entrada[0] is not None and _ref_entrada[0].winfo_exists():
-            _ref_entrada[0].lift()
-            _ref_entrada[0].focus_force()
-            return
-        ventana = VentanaEntradaSAP(win, lambda df: _ejecutar_reconciliacion(df, soc))
-        _ref_entrada[0] = ventana
+    def _on_migrado(soc_sel: str):
+        try:
+            migradas_frame.nametowidget("lbl_placeholder").pack_forget()
+        except Exception:
+            pass
+        timestamp = datetime.now().strftime("%d/%m/%Y  %H:%M")
+        txt_migradas.config(state="normal")
+        txt_migradas.insert("end", f"✓  {timestamp}  —  {soc_sel}\n", "entry")
+        txt_migradas.config(state="disabled")
+        txt_migradas.see("end")
 
     def _ejecutar_reconciliacion(df_sap: pd.DataFrame, soc_sel: str):
         progress = ProgressWindow(win, "Realizando Auditoría...")
@@ -196,7 +331,6 @@ def _construir_ui(win, sociedades: list):
                 items = list(df_logs['item'].unique()) if not df_logs.empty else []
                 df_saldos = cargar_saldos(cur_sig, tiendas_ids, items)
 
-                # Ítems del log ausentes en el paste SAP → stock = 0
                 df_sap_cruce = df_sap.copy()
                 if not df_logs.empty:
                     sap_keys = set(zip(
@@ -209,7 +343,8 @@ def _construir_ui(win, sociedades: list):
                         if (str(r['item']), str(r['whs'])) not in sap_keys
                     ]
                     if missing:
-                        df_sap_cruce = pd.concat([df_sap_cruce, pd.DataFrame(missing)], ignore_index=True)
+                        df_sap_cruce = pd.concat([df_sap_cruce, pd.DataFrame(missing)],
+                                                 ignore_index=True)
 
                 df_final = calcular_ajustes_tres_vias(df_sap_cruce, df_logs, df_saldos)
 
@@ -230,7 +365,8 @@ def _construir_ui(win, sociedades: list):
                     win.after(0, lambda: messagebox.showinfo("Info", "Sin diferencias."))
                 else:
                     win.after(0, lambda f=df_final, n=n_logs_bd:
-                              mostrar_ventana_resultados(win, f, soc_sel, n, on_migrado=_on_migrado))
+                              mostrar_ventana_resultados(win, f, soc_sel, n,
+                                                         on_migrado=_on_migrado))
             except Exception as e:
                 win.after(0, lambda m=str(e): messagebox.showerror("Error", m))
             finally:
@@ -238,7 +374,8 @@ def _construir_ui(win, sociedades: list):
 
         threading.Thread(target=_tarea, daemon=True).start()
 
-    # ── Botón 3: Cargar desde Excel ────────────────────────────────────────────
+    # ── Función cargar desde Excel ─────────────────────────────────────────────
+
     def cargar_desde_excel():
         path = filedialog.askopenfilename(
             title="Seleccionar Excel de Auditoría exportado",
@@ -286,7 +423,8 @@ def _construir_ui(win, sociedades: list):
                         lambda c: 0 if 'NIVELACIÓN' in str(c) else 1
                     )
 
-                for num_col in ('Monto_A_Ingresar', 'Stock_A_Fecha', 'Stock_SIG', 'Movimiento', 'Costo_SIG'):
+                for num_col in ('Monto_A_Ingresar', 'Stock_A_Fecha', 'Stock_SIG',
+                                'Movimiento', 'Costo_SIG'):
                     if num_col in df_s.columns:
                         df_s[num_col] = pd.to_numeric(df_s[num_col], errors='coerce').fillna(0.0)
 
@@ -309,17 +447,3 @@ def _construir_ui(win, sociedades: list):
             mostrar_ventana_resultados(win, df_combined, soc_nombre)
         except Exception as e:
             messagebox.showerror("Error", f"No se pudo cargar el archivo:\n{e}")
-
-    # ── Layout de botones ──────────────────────────────────────────────────────
-    frame_queries = tb.Frame(container)
-    frame_queries.pack(fill="x", pady=(8, 2))
-    tb.Button(frame_queries, text="1. Generar Query SAP",
-              command=func_generar_query, bootstyle="info"
-              ).pack(side="left", expand=True, fill="x")
-    tb.Button(container, text="2. Cargar SAP y Cruzar",
-              command=lanzar_cruce, bootstyle="success").pack(fill="x", pady=(2, 0))
-
-    ttk.Separator(container, orient="horizontal").pack(fill="x", pady=(14, 6))
-
-    tb.Button(container, text="📂 Cargar desde Excel exportado",
-              command=cargar_desde_excel, bootstyle="secondary").pack(fill="x", pady=(0, 4))

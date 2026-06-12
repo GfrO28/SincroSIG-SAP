@@ -5,6 +5,7 @@ import pandas as pd
 import pyperclip
 
 from modules.reconciliacion_export import exportar_excel, migrar_bd_local
+from config.utils import set_window_icon
 
 
 _COLS    = ("item",     "fecha",      "concepto", "ajuste",           "costo_sig",        "whs",     "centro_costo",    "id_sig",  "stock_sap",  "stock_sig",  "mov",          "id_mov")
@@ -22,6 +23,7 @@ def mostrar_ventana_resultados(parent, df_ajustes, soc_sel: str, n_logs_bd: int 
     top = tb.Toplevel(parent)
     top.title(f"Panel de Ajustes Directo SAP - {soc_sel}")
     top.geometry("1450x750")
+    set_window_icon(top)
 
     def on_closing():
         nonlocal df_ajustes
@@ -155,18 +157,35 @@ def mostrar_ventana_resultados(parent, df_ajustes, soc_sel: str, n_logs_bd: int 
             tree.tk.call("ttk::style", "configure", "Treeview", "-font", ("Segoe UI", 9))
             tree.tk.call("ttk::style", "configure", "Treeview.Heading", "-font", ("Segoe UI", 9, "bold"))
 
-            def _cmd_copiar(t, lbl, idx, nombre_col):
+            def _cmd_copiar(t, container, lbl, idx, nombre_col, col_id):
                 def _copiar():
-                    # Solo las filas top-level son las que se copian
                     top_iids = list(t.get_children())
-                    original_tags = {iid: t.item(iid, 'tags') for iid in top_iids}
 
-                    # Highlight solo en las filas que se copian
-                    t.tag_configure('col_highlight', background=_COL_SEL, foreground="white")
-                    for iid in top_iids:
-                        t.item(iid, tags=('col_highlight',))
+                    # Canvas overlay — resalta solo las celdas de la columna
+                    _overlay = [None]
+                    visible = [iid for iid in top_iids if t.bbox(iid)]
+                    if visible:
+                        try:
+                            raw = t.bbox(visible[0], col_id)
+                            if raw:
+                                cx, cy0, cw, _ = raw
+                                ch = t.winfo_height() - cy0
+                                if ch > 0 and cw > 0:
+                                    ov = tk.Canvas(container, highlightthickness=0, bd=0)
+                                    ov.place(
+                                        x=t.winfo_x() + cx,
+                                        y=t.winfo_y() + cy0,
+                                        width=cw, height=ch,
+                                    )
+                                    ov.create_rectangle(0, 0, cw, ch,
+                                                        fill=_COL_SEL, outline="",
+                                                        stipple="gray50")
+                                    ov.lift()
+                                    _overlay[0] = ov
+                        except Exception:
+                            pass
 
-                    # Copiar valores de esas mismas filas
+                    # Copiar valores de las filas top-level
                     valores = []
                     for iid in top_iids:
                         vals = t.item(iid, 'values')
@@ -178,16 +197,15 @@ def mostrar_ventana_resultados(parent, df_ajustes, soc_sel: str, n_logs_bd: int 
                         pyperclip.copy("\n".join(valores))
                         lbl.config(
                             text=f"✓  '{nombre_col}' copiada — {len(valores)} filas al portapapeles",
-                            fg="#6BCB77"
+                            fg="#6BCB77",
                         )
                     else:
                         lbl.config(text="Sin datos para copiar.", fg="#FF6B6B")
 
-                    # Restaurar tags originales tras 1.2 s
                     def _restore():
-                        for iid, tags in original_tags.items():
+                        if _overlay[0]:
                             try:
-                                t.item(iid, tags=tags)
+                                _overlay[0].destroy()
                             except Exception:
                                 pass
                     t.after(1200, _restore)
@@ -195,7 +213,8 @@ def mostrar_ventana_resultados(parent, df_ajustes, soc_sel: str, n_logs_bd: int 
                 return _copiar
 
             for i, (col, head, w) in enumerate(zip(_COLS, _HEADERS, _WIDTHS)):
-                tree.heading(col, text=head, command=_cmd_copiar(tree, lbl_status, i, head))
+                tree.heading(col, text=head,
+                             command=_cmd_copiar(tree, tree_container, lbl_status, i, head, col))
                 tree.column(col, width=w, anchor="center")
 
             sb_v = ttk.Scrollbar(tree_container, orient="vertical",  command=tree.yview)
