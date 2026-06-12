@@ -135,6 +135,11 @@ def mostrar_login(parent, on_success):
                 text=f"✓  v{__version__} — actualizado",
                 bootstyle="success-outline",
             )
+            messagebox.showinfo(
+                "Sin actualizaciones",
+                f"Ya tenés la versión más reciente.\n\nVersión actual: v{__version__}",
+                parent=win,
+            )
             return
 
         # Hay nueva versión disponible
