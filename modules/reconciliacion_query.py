@@ -124,10 +124,11 @@ def _build_error_entry(log_row: dict, js: dict) -> dict:
 
 _SAP_QUERY_HEADER = (
     'SELECT T0."ItemCode",T0."Warehouse" "WhsCode",'
+    'T1."ItemName" "Descripcion",'
     'CAST(SUM(T0."InQty"-T0."OutQty") AS DECIMAL(19,4)) "Stock_A_Fecha" '
-    'FROM OINM T0 WHERE '
+    'FROM OINM T0 INNER JOIN OITM T1 ON T1."ItemCode"=T0."ItemCode" WHERE '
 )
-_SAP_QUERY_FOOTER = ' GROUP BY T0."ItemCode",T0."Warehouse"'
+_SAP_QUERY_FOOTER = ' GROUP BY T0."ItemCode",T0."Warehouse",T1."ItemName"'
 _CHAR_LIMIT       = 30_000
 
 

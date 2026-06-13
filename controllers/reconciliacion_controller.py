@@ -181,6 +181,7 @@ def _construir_ui(win, sociedades: list):
                 'Número de artículo': 'ItemCode',
                 'Código de almacén':  'WhsCode',
                 'Stock_A_Fecha':      'Stock_A_Fecha',
+                'ItemName':           'Descripcion',
             }
             df_nueva = df_nueva.rename(columns=rename_map)
             if 'WhsCode' in df_nueva.columns:
@@ -401,7 +402,7 @@ def _construir_ui(win, sociedades: list):
                 if df_s.empty:
                     continue
 
-                for str_col in ('Concepto', 'ID_Movimiento', 'WhsCode'):
+                for str_col in ('Concepto', 'ID_Movimiento', 'WhsCode', 'Descripcion'):
                     if str_col in df_s.columns:
                         df_s[str_col] = df_s[str_col].fillna('').astype(str).str.strip()
 

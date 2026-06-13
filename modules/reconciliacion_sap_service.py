@@ -36,6 +36,7 @@ def calcular_ajustes_tres_vias(df_sap, df_logs, df_saldos):
         item = str(row_sap['ItemCode'])
         whs_sap = str(row_sap['WhsCode'])
         stk_sap_inicial = float(row_sap['Stock_A_Fecha'])
+        descripcion = str(row_sap.get('Descripcion', ''))
         
         # SIG: saldo por (item, whs) para NIVELACIÓN
         match_sig    = df_saldos[(df_saldos['ItemCode'] == item) & (df_saldos['WhsCode'] == whs_sap)]
@@ -68,19 +69,20 @@ def calcular_ajustes_tres_vias(df_sap, df_logs, df_saldos):
                 'WhsCode': whs_sap, 'Concepto': 'NIVELACIÓN (Sincronizar con SIG)',
                 'Stock_A_Fecha': stk_sap_inicial, 'Stock_SIG': stk_sig_real,
                 'Movimiento': 0.00, 'Monto_A_Ingresar': dif, 'Prioridad': 0,
-                'ID_Movimiento': 'N/A'
+                'ID_Movimiento': 'N/A', 'Descripcion': descripcion,
             })
             stk_simulado = stk_sig_real
 
         # --- FASE B: COLA DE MIGRACIÓN ---
         # Cada entrada de log = una salida fallida real; se acumulan en orden cronológico
         for _, log in logs_item.iterrows():
-            cant_salida = log['qty']
+            cant_salida = round(float(log['qty']), 4)
             is_primary  = bool(log.get('is_primary', True))
             id_sig_log  = str(int(log['id_sig'])) if 'id_sig' in log else id_sig_niv
-            monto_inyectar = 0
-            if stk_simulado < cant_salida:
-                monto_inyectar = cant_salida - stk_simulado
+            monto_inyectar = 0.0
+            stk_sim_r = round(stk_simulado, 4)
+            if stk_sim_r < cant_salida:
+                monto_inyectar = round(cant_salida - stk_sim_r, 4)
                 stk_simulado  += monto_inyectar
 
             registros_ajuste.append({
@@ -91,7 +93,8 @@ def calcular_ajustes_tres_vias(df_sap, df_logs, df_saldos):
                 'Prioridad': 1,
                 'ID_Movimiento': log.get('id_mov', 'N/A'),
                 'Is_Primary': is_primary,
+                'Descripcion': descripcion,
             })
-            stk_simulado -= cant_salida
+            stk_simulado = round(stk_simulado - cant_salida, 4)
 
     return pd.DataFrame(registros_ajuste)

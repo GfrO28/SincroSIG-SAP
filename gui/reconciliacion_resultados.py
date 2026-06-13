@@ -8,9 +8,9 @@ from modules.reconciliacion_export import exportar_excel, migrar_bd_local
 from config.utils import set_window_icon
 
 
-_COLS    = ("item",     "fecha",      "concepto", "ajuste",           "costo_sig",        "whs",     "centro_costo",    "id_sig",  "stock_sap",  "stock_sig",  "mov",          "id_mov")
-_HEADERS = ["Artículo", "Fecha Reg.", "Concepto", "Cant. a Ingresar", "Precio Unit. SIG", "Almacén", "Centro de Costo", "Tienda",  "Stock SAP",  "Stock SIG",  "Cant. Salida", "ID Mov"]
-_WIDTHS  = [140,        100,          215,        120,                110,                75,        110,               90,        110,          110,          100,            95]
+_COLS    = ("item",     "descrip",       "fecha",      "concepto", "ajuste",           "costo_sig",        "whs",     "centro_costo",    "id_sig",  "stock_sap",  "stock_sig",  "mov",          "id_mov")
+_HEADERS = ["Artículo", "Descripción",   "Fecha Reg.", "Concepto", "Cant. a Ingresar", "Precio Unit. SIG", "Almacén", "Centro de Costo", "Tienda",  "Stock SAP",  "Stock SIG",  "Cant. Salida", "ID Mov"]
+_WIDTHS  = [140,        200,             100,          215,        120,                110,                75,        110,               90,        110,          110,          100,            95]
 
 # Colores compartidos entre leyenda y tags del Treeview
 _COL_NIV  = "#F0D060"  # amarillo dorado — NIVELACIÓN
@@ -20,6 +20,9 @@ _COL_SEL  = "#2962A8"  # azul selección  — highlight al copiar columna
 
 
 def mostrar_ventana_resultados(parent, df_ajustes, soc_sel: str, n_logs_bd: int = 0, on_migrado=None):
+    _totales_grupo = df_ajustes.groupby(['ID_SIG', 'ItemCode'])['Monto_A_Ingresar'].transform('sum')
+    df_ajustes = df_ajustes[_totales_grupo.round(4) > 0].copy()
+
     top = tb.Toplevel(parent)
     top.title(f"Panel de Ajustes Directo SAP - {soc_sel}")
     top.geometry("1450x750")
@@ -132,19 +135,25 @@ def mostrar_ventana_resultados(parent, df_ajustes, soc_sel: str, n_logs_bd: int 
             tab_frame = tb.Frame(notebook, padding=5)
             notebook.add(tab_frame, text=f" Fecha: {tab_name} ")
 
-            # ── Leyenda — Canvas inmune a los overrides de ttkbootstrap ──────────
-            legend_frame = tk.Frame(tab_frame)
+            # ── Leyenda — Canvas con rectángulo dibujado para que el color
+            # no sea sobreescrito por el sistema de temas de ttkbootstrap.
+            legend_frame = tb.Frame(tab_frame)
             legend_frame.pack(fill="x", pady=(0, 4))
             _chip_font = tkfont.Font(family="Segoe UI", size=8, weight="bold")
-            for color, texto in [(_COL_NIV, "NIVELACIÓN"), (_COL_PRIM, "COLA Primaria"), (_COL_SEC, "COLA Secundaria")]:
-                tw = _chip_font.measure(f"  {texto}  ") + 2
-                cv = tk.Canvas(legend_frame, bg=color, width=tw, height=22,
-                               bd=0, highlightthickness=1,
-                               highlightbackground="#666666")
-                cv.create_text(tw // 2, 11, text=f"  {texto}  ",
-                               fill="black", font=("Segoe UI", 8, "bold"),
-                               anchor="center")
-                cv.pack(side="left", padx=4, pady=2)
+            for _color, _texto in [
+                (_COL_NIV,  "  NIVELACIÓN  "),
+                (_COL_PRIM, "  COLA Primaria  "),
+                (_COL_SEC,  "  COLA Secundaria  "),
+            ]:
+                _tw = _chip_font.measure(_texto) + 4
+                _th = 22
+                _cv = tk.Canvas(legend_frame, width=_tw, height=_th,
+                                bd=0, highlightthickness=0)
+                _cv.create_rectangle(0, 0, _tw, _th, fill=_color, outline="")
+                _cv.create_text(_tw // 2, _th // 2, text=_texto,
+                                fill="#FFFFFF", font=("Segoe UI", 8, "bold"),
+                                anchor="center")
+                _cv.pack(side="left", padx=4, pady=2)
 
             lbl_status = tk.Label(
                 tab_frame,
@@ -239,6 +248,7 @@ def mostrar_ventana_resultados(parent, df_ajustes, soc_sel: str, n_logs_bd: int 
                 whs_group    = str(df_group.iloc[0]['WhsCode'])
                 costos_grupo = df_group['Costo_SIG'].dropna()
                 costo_grupo  = f"{float(costos_grupo.iloc[0]):.4f}" if not costos_grupo.empty else "-"
+                desc_grupo   = str(df_group.iloc[0].get('Descripcion', ''))
                 try:
                     tienda_fmt = f"P{int(id_sig):04d}"
                 except Exception:
@@ -246,7 +256,7 @@ def mostrar_ventana_resultados(parent, df_ajustes, soc_sel: str, n_logs_bd: int 
 
                 parent_iid = tree.insert("", "end", open=var_expandir_todo.get(),
                                          tags=('total_row',), values=(
-                    item_code, "-", "SUMATORIA TOTAL",
+                    item_code, desc_grupo, "-", "SUMATORIA TOTAL",
                     f"{total_monto:.4f}", costo_grupo, whs_group, "C0001", tienda_fmt, "-", "-", "-"
                 ))
 
@@ -265,7 +275,8 @@ def mostrar_ventana_resultados(parent, df_ajustes, soc_sel: str, n_logs_bd: int 
                     except Exception:
                         row_tienda_fmt = str(row['ID_SIG'])
                     tree.insert(parent_iid, "end", tags=(tag,), values=(
-                        row['ItemCode'], row['Fecha'], concepto,
+                        row['ItemCode'], str(row.get('Descripcion', '')),
+                        row['Fecha'], concepto,
                         f"{monto:.4f}",
                         f"{float(row.get('Costo_SIG', 0.00)):.4f}",
                         row['WhsCode'], "C0001", row_tienda_fmt,
