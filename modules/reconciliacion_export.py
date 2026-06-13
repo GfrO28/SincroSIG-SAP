@@ -13,8 +13,8 @@ from gui.progress_window import ProgressWindow
 _INSERT_SQL = """
     INSERT INTO incidencias_salidas
       (lote_id, fecha_carga, sociedad, fecha_proceso,
-       item_code, id_tienda, whs_code, tipo_incidencia)
-    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+       item_code, id_tienda, whs_code, tipo_incidencia, descripcion)
+    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
 """
 
 
@@ -44,7 +44,7 @@ def exportar_excel(df_fn, soc_sel: str) -> None:
             header_format    = workbook.add_format({'bold': True, 'bg_color': '#D7E4BC', 'border': 1})
 
             cols_final = [
-                "ItemCode", "Fecha", "Concepto", "Monto_A_Ingresar",
+                "ItemCode", "Descripcion", "Fecha", "Concepto", "Monto_A_Ingresar",
                 "Costo_SIG", "WhsCode", "Centro_Costo", "ID_SIG",
                 "Stock_A_Fecha", "Stock_SIG", "Movimiento", "ID_Movimiento",
             ]
@@ -99,9 +99,10 @@ def exportar_excel(df_fn, soc_sel: str) -> None:
                     worksheet.write(current_row, 9,  "-",               total_format)
                     worksheet.write(current_row, 10, "-",               total_format)
                     worksheet.write(current_row, 11, "-",               total_format)
+                    worksheet.write(current_row, 12, "-",               total_format)
                     current_row += 2
 
-                worksheet.set_column(0, 11, 18)
+                worksheet.set_column(0, 12, 18)
 
         messagebox.showinfo("Éxito", f"Archivo de auditoría guardado:\n{filename}")
     except Exception as e:
@@ -148,7 +149,7 @@ def migrar_bd_local(df_ajustes: pd.DataFrame, soc_sel: str, parent_widget, on_su
                 rows.append((
                     lote_id, fecha_carga, soc_sel, fecha_p,
                     str(row['ItemCode']), id_tienda_fmt, str(row['WhsCode']),
-                    tipo_inc,
+                    tipo_inc, str(row.get('Descripcion', '')),
                 ))
 
             cur.executemany(_INSERT_SQL, rows)
