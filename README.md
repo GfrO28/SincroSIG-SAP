@@ -1,4 +1,4 @@
-# SincroSIG
+# SincroSIG-SAP
 
 Herramienta de escritorio para sincronización de datos entre el sistema de tiendas **SIG** y la plataforma central **SAP Business One / SGCONTA**, con módulo de reconciliación de stock.
 
