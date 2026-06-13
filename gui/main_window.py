@@ -180,16 +180,54 @@ def _construir_contenido(root, user_info, conn_sig, cur_sig, conn_web, cur_web):
              bootstyle="secondary").pack(side="left", padx=(8, 0), pady=(6, 0))
 
     if user_info:
-        nombre   = user_info.get('nombre', '') or ''
-        apellido = user_info.get('apellido', '') or ''
-        cargo    = user_info.get('cargo', '') or user_info.get('desccargo', '')
-        uid      = user_info.get('idusuario', '')
-        etiqueta = f"  👤  {uid} – {apellido} {nombre}".strip()
-        if cargo:
-            etiqueta += f"  |  {cargo}"
-        tb.Label(header, text=etiqueta,
-                 font=("Segoe UI", 9),
-                 bootstyle="secondary").pack(side="right", pady=(6, 0))
+        import sys, subprocess
+        from tkinter import messagebox
+
+        nombre    = user_info.get('nombre',   '') or ''
+        apellido  = user_info.get('apellido', '') or ''
+        cargo     = (user_info.get('cargo', '') or user_info.get('desccargo', '') or '').strip()
+        uid       = str(user_info.get('idusuario', ''))
+        full_name = f"{apellido} {nombre}".strip() or uid
+
+        # Texto compacto para el botón (solo apellido o ID, cortado a 22 chars)
+        btn_label = apellido.strip() or uid
+        if len(btn_label) > 22:
+            btn_label = btn_label[:22] + "…"
+
+        def _cerrar_sesion():
+            if messagebox.askyesno(
+                "Cerrar Sesión",
+                f"¿Cerrar la sesión de {full_name}?\n\nLa aplicación se reiniciará.",
+                parent=root,
+            ):
+                subprocess.Popen([sys.executable] + sys.argv)
+                root.destroy()
+
+        def _show_user_menu(_event=None):
+            m = tk.Menu(root, tearoff=0)
+            m.add_command(label=f"  {full_name}",
+                          state="disabled", font=("Segoe UI", 9, "bold"))
+            m.add_command(label=f"  ID: {uid}",
+                          state="disabled", font=("Segoe UI", 8))
+            if cargo:
+                m.add_command(label=f"  {cargo}",
+                              state="disabled", font=("Segoe UI", 8))
+            m.add_separator()
+            m.add_command(label="  Cerrar Sesión", command=_cerrar_sesion)
+            x = btn_usuario.winfo_rootx()
+            y = btn_usuario.winfo_rooty() + btn_usuario.winfo_height()
+            try:
+                m.tk_popup(x, y)
+            finally:
+                m.grab_release()
+
+        btn_usuario = tb.Button(
+            header,
+            text=f"👤  {btn_label}",
+            bootstyle="secondary-outline",
+            command=_show_user_menu,
+        )
+        btn_usuario.pack(side="right", pady=(4, 0))
 
     ttk.Separator(root, orient="horizontal").pack(fill="x", padx=0)
 

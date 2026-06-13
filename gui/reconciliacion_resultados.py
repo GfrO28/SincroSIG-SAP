@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, font as tkfont
 import ttkbootstrap as tb
 import pandas as pd
 import pyperclip
@@ -132,18 +132,23 @@ def mostrar_ventana_resultados(parent, df_ajustes, soc_sel: str, n_logs_bd: int 
             tab_frame = tb.Frame(notebook, padding=5)
             notebook.add(tab_frame, text=f" Fecha: {tab_name} ")
 
-            # ── Leyenda — mismos colores que los tags del Treeview ──────────────
+            # ── Leyenda — Canvas inmune a los overrides de ttkbootstrap ──────────
             legend_frame = tk.Frame(tab_frame)
             legend_frame.pack(fill="x", pady=(0, 4))
+            _chip_font = tkfont.Font(family="Segoe UI", size=8, weight="bold")
             for color, texto in [(_COL_NIV, "NIVELACIÓN"), (_COL_PRIM, "COLA Primaria"), (_COL_SEC, "COLA Secundaria")]:
-                chip = tk.Frame(legend_frame, bg=color, bd=1, relief="solid")
-                chip.pack(side="left", padx=4, pady=2)
-                tk.Label(chip, text=f"  {texto}  ", bg=color, fg="black",
-                         font=("Segoe UI", 8, "bold"), padx=2, pady=2).pack()
+                tw = _chip_font.measure(f"  {texto}  ") + 2
+                cv = tk.Canvas(legend_frame, bg=color, width=tw, height=22,
+                               bd=0, highlightthickness=1,
+                               highlightbackground="#666666")
+                cv.create_text(tw // 2, 11, text=f"  {texto}  ",
+                               fill="black", font=("Segoe UI", 8, "bold"),
+                               anchor="center")
+                cv.pack(side="left", padx=4, pady=2)
 
             lbl_status = tk.Label(
                 tab_frame,
-                text="▲ Clic en un encabezado para copiar esa columna (solo totales)",
+                text="▲ Clic en un encabezado para copiar esa columna",
                 bg="#1a1a2e", fg="#aaaaaa", font=("Segoe UI", 8), anchor="w"
             )
             lbl_status.pack(fill="x", padx=6, pady=(2, 2))
