@@ -7,7 +7,6 @@ Flujo:
 """
 
 import os
-import sys
 import subprocess
 import tempfile
 import threading
@@ -130,7 +129,7 @@ def descargar_e_instalar(
                 [str(ruta_local), "/SILENT", "/NORESTART"],
                 creationflags=subprocess.DETACHED_PROCESS,
             )
-            sys.exit(0)
+            os._exit(0)
 
         except Exception as e:
             if on_error:

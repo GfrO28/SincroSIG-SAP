@@ -207,15 +207,34 @@ def mostrar_login(parent, on_success):
         from modules.updater import descargar_e_instalar
 
         prog = ProgressWindow(win, f"Descargando {info['version']}…")
-        prog.update(0, f"Conectando con GitHub…")
+        prog.update(0, "Conectando con GitHub…")
         btn_update.config(state="disabled")
 
+        _dl_q = queue.Queue()
+
         def _progreso(pct):
-            win.after(0, lambda p=pct: prog.update(p, f"Descargando… {p:.0f}%"))
+            _dl_q.put(("pct", pct))
 
         def _on_error(msg):
-            win.after(0, lambda: _fallo_descarga(msg, prog))
+            _dl_q.put(("error", msg))
 
+        def _poll_dl():
+            try:
+                while True:
+                    kind, val = _dl_q.get_nowait()
+                    if kind == "error":
+                        _fallo_descarga(val, prog)
+                        return
+                    prog.update(val, f"Descargando… {val:.0f}%")
+            except queue.Empty:
+                pass
+            try:
+                if prog.winfo_exists():
+                    win.after(150, _poll_dl)
+            except Exception:
+                pass
+
+        win.after(150, _poll_dl)
         descargar_e_instalar(info, progreso_fn=_progreso, on_error=_on_error)
 
     def _fallo_descarga(msg, prog):
