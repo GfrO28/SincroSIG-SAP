@@ -7,6 +7,7 @@ import ttkbootstrap as tb
 
 from config.db import get_connections
 from config.utils import obtener_tiendas_sig
+from version import APP_NAME, __version__
 from controllers.formulaciones_controller import abrir_interfaz_formulaciones
 from controllers.sync_controller import (
     sync_personal_controller,
@@ -171,7 +172,7 @@ def _construir_contenido(root, user_info, conn_sig, cur_sig, conn_web, cur_web):
     header = tb.Frame(root, padding=(16, 10, 16, 8))
     header.pack(fill="x")
 
-    tb.Label(header, text="SincroSIG",
+    tb.Label(header, text=APP_NAME,
              font=("Segoe UI", 18, "bold"),
              bootstyle="info").pack(side="left")
     tb.Label(header, text="Sincronización SAP · SIG",
@@ -233,7 +234,7 @@ def _construir_contenido(root, user_info, conn_sig, cur_sig, conn_web, cur_web):
     tb.Button(footer, text="Salir", bootstyle="danger-outline",
               width=14, command=root.destroy).pack(side="right")
 
-    tb.Label(footer, text="SincroSIG v1.0  ·  © 2026",
+    tb.Label(footer, text=f"{APP_NAME} v{__version__}  ·  © 2026",
              font=("Segoe UI", 8),
              bootstyle="secondary").pack(side="left")
 

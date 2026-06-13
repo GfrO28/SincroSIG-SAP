@@ -26,9 +26,10 @@ def exportar_excel(df_fn, soc_sel: str) -> None:
         df_fn: callable sin argumentos que retorna el DataFrame filtrado activo.
         soc_sel: nombre de la sociedad (usado en el nombre del archivo).
     """
+    from config.constants import DIR_SAP_RECON
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     filename  = f"ajustes_{soc_sel[:10].strip()}_{timestamp}.xlsx"
-    path      = os.path.join("SincroSIG", "logs", "SAP", "ConciliacionesSAP", filename)
+    path      = str(DIR_SAP_RECON / filename)
 
     try:
         os.makedirs(os.path.dirname(path), exist_ok=True)

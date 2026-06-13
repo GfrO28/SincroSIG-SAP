@@ -53,7 +53,7 @@ class SQLCollector:
         self._lines.clear()
 
     # --- Exportar a archivo ---
-    def export_to_file(self, nombre_base: str, carpeta: str = r"SincroSIG\logs") -> str:
+    def export_to_file(self, nombre_base: str, carpeta: str | None = None) -> str:
         """
         Exporta todo el contenido (INSERTS + UPDATES) a un archivo TXT con fecha y hora.
         Retorna la ruta del archivo creado o cadena vacía si no hay sentencias.
@@ -61,6 +61,9 @@ class SQLCollector:
         instrucciones = self.get_inserts() + self.get_updates() + self.get_lines()
         if not instrucciones:
             return ""
+        if carpeta is None:
+            from config.constants import DIR_QUERY_SIG
+            carpeta = str(DIR_QUERY_SIG)
         os.makedirs(carpeta, exist_ok=True)
         fecha_hora = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         nombre = f"{nombre_base}_{fecha_hora}.txt"
@@ -236,7 +239,7 @@ def export_excel(
     data: Union["pd.DataFrame", List[Dict[str, Any]], None],
     nombre_base: str,
     sheet_name: str = "Sheet1",
-    carpeta: str = "SincroSIG/logs/formulaciones"
+    carpeta: str | None = None,
 ) -> str:
     """
     Exporta `data` a un archivo Excel (.xlsx) y devuelve la ruta del archivo generado.
@@ -252,6 +255,9 @@ def export_excel(
         return ""
 
     # Crear carpeta destino
+    if carpeta is None:
+        from config.constants import DIR_FORM_REPORTE
+        carpeta = str(DIR_FORM_REPORTE)
     Path(carpeta).mkdir(parents=True, exist_ok=True)
     fecha_hora = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     nombre = f"{nombre_base}_{fecha_hora}.xlsx"
@@ -318,10 +324,13 @@ def set_window_icon(win):
 import os
 from datetime import datetime
 
-def export_sql_to_file(nombre_base, contenido, carpeta="SincroSIG/logs"):
+def export_sql_to_file(nombre_base, contenido, carpeta=None):
     if not contenido:
         return ""
 
+    if carpeta is None:
+        from config.constants import DIR_QUERY_SIG
+        carpeta = str(DIR_QUERY_SIG)
     os.makedirs(carpeta, exist_ok=True)
 
     fecha_hora = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")

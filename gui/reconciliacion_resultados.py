@@ -157,11 +157,11 @@ def mostrar_ventana_resultados(parent, df_ajustes, soc_sel: str, n_logs_bd: int 
             tree.tk.call("ttk::style", "configure", "Treeview", "-font", ("Segoe UI", 9))
             tree.tk.call("ttk::style", "configure", "Treeview.Heading", "-font", ("Segoe UI", 9, "bold"))
 
-            def _cmd_copiar(t, container, lbl, idx, nombre_col, col_id):
+            def _cmd_copiar(t, lbl, idx, nombre_col, col_id):
                 def _copiar():
                     top_iids = list(t.get_children())
 
-                    # Canvas overlay — resalta solo las celdas de la columna
+                    # Toplevel translucente — resalta solo las celdas de la columna sin ocultar el texto
                     _overlay = [None]
                     visible = [iid for iid in top_iids if t.bbox(iid)]
                     if visible:
@@ -171,16 +171,13 @@ def mostrar_ventana_resultados(parent, df_ajustes, soc_sel: str, n_logs_bd: int 
                                 cx, cy0, cw, _ = raw
                                 ch = t.winfo_height() - cy0
                                 if ch > 0 and cw > 0:
-                                    ov = tk.Canvas(container, highlightthickness=0, bd=0)
-                                    ov.place(
-                                        x=t.winfo_x() + cx,
-                                        y=t.winfo_y() + cy0,
-                                        width=cw, height=ch,
-                                    )
-                                    ov.create_rectangle(0, 0, cw, ch,
-                                                        fill=_COL_SEL, outline="",
-                                                        stipple="gray50")
-                                    ov.lift()
+                                    sx = t.winfo_rootx() + cx
+                                    sy = t.winfo_rooty() + cy0
+                                    ov = tk.Toplevel(t)
+                                    ov.overrideredirect(True)
+                                    ov.geometry(f"{cw}x{ch}+{sx}+{sy}")
+                                    ov.configure(bg=_COL_SEL)
+                                    ov.attributes("-alpha", 0.30)
                                     _overlay[0] = ov
                         except Exception:
                             pass
@@ -214,7 +211,7 @@ def mostrar_ventana_resultados(parent, df_ajustes, soc_sel: str, n_logs_bd: int 
 
             for i, (col, head, w) in enumerate(zip(_COLS, _HEADERS, _WIDTHS)):
                 tree.heading(col, text=head,
-                             command=_cmd_copiar(tree, tree_container, lbl_status, i, head, col))
+                             command=_cmd_copiar(tree, lbl_status, i, head, col))
                 tree.column(col, width=w, anchor="center")
 
             sb_v = ttk.Scrollbar(tree_container, orient="vertical",  command=tree.yview)

@@ -1,3 +1,15 @@
+from pathlib import Path
+
+# ── Carpetas de salida (Documentos del usuario) ────────────────────────────────
+_BASE = Path.home() / "Documents" / "SincroSIGSAP"
+
+DIR_SAP_QUERY    = _BASE / "SAP" / "QuerySAP"          # queries generados para SAP
+DIR_SAP_RECON    = _BASE / "SAP" / "Reconciliaciones"   # Excel de auditoría
+DIR_QUERY_SIG    = _BASE / "QuerySIG"                   # Personal / Tienda / Cargos
+DIR_FORM_COMP    = _BASE / "Formulaciones" / "Comparativo SIG vs TDA"
+DIR_FORM_REPORTE = _BASE / "Formulaciones" / "Reporte Formulaciones"
+
+
 MAPEO_TIENDAS_SAP = {
     "37": "02", "45": "03", "84": "04", "87": "05", "46": "06",
     "92": "07", "53": "08", "12": "09", "83": "10", "105": "11",

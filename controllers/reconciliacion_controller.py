@@ -270,8 +270,9 @@ def _construir_ui(win, sociedades: list):
                     ))
                     return
 
+                from config.constants import DIR_SAP_QUERY
                 queries = construir_queries_sap(items_set)
-                folder  = guardar_queries(queries, soc_sel, os.path.join("SincroSIG", "logs", "SAP"))
+                folder  = guardar_queries(queries, soc_sel, str(DIR_SAP_QUERY))
                 pyperclip.copy(queries[0])
 
                 n_items, n_partes = len(items_set), len(queries)
@@ -323,7 +324,7 @@ def _construir_ui(win, sociedades: list):
                     win.after(0, lambda n=len(errores), nl=nombre_log_c: messagebox.showwarning(
                         "Registros omitidos",
                         f"{n} registro(s) omitidos por message no reconocido.\n"
-                        f"Log guardado en:\nlogs/SAP/logs_errorparseo/{nl}"
+                        f"Log guardado en:\nDocumentos\\SincroSIGSAP\\SAP\\QuerySAP\\logs_errorparseo\\{nl}"
                     ))
 
                 df_logs = pd.DataFrame(logs_procesados)

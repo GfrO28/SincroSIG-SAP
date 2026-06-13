@@ -155,7 +155,8 @@ def exportar_excel_dataset(
     # ==========================================
     if not ruta_salida:
         ts = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        ruta_salida = f"SincroSIG/logs/formulaciones/reporte_formulaciones_{ts}.xlsx"
+        from config.constants import DIR_FORM_REPORTE
+        ruta_salida = str(DIR_FORM_REPORTE / f"reporte_formulaciones_{ts}.xlsx")
 
     os.makedirs(os.path.dirname(ruta_salida), exist_ok=True)
     try:

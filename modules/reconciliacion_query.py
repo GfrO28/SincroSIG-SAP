@@ -173,7 +173,8 @@ def guardar_queries(queries: list, soc_sel: str, folder: str) -> str:
 
 def escribir_log_parseo(soc_sel: str, registros: list) -> tuple:
     """Escribe los registros no parseables en un archivo de texto de auditoría."""
-    folder    = os.path.join("SincroSIG", "logs", "SAP", "logs_errorparseo")
+    from config.constants import DIR_SAP_QUERY
+    folder    = str(DIR_SAP_QUERY / "logs_errorparseo")
     os.makedirs(folder, exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     nombre    = f"{soc_sel[:20].strip().replace(' ', '_')}_ERRORPARSEO_{timestamp}.txt"
