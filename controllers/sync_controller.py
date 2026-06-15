@@ -65,10 +65,10 @@ def _ejecutar_proceso(
             # ==========================================
             if total == 0:
                 progress.close()
-                messagebox.showinfo(
+                parent.after(0, lambda: messagebox.showinfo(
                     "Sincronización",
                     f"{nombre} sincronizado al 100%. No hay registros pendientes."
-                )
+                ))
                 return
 
             # ==========================================
@@ -135,7 +135,8 @@ def _ejecutar_proceso(
 
         except Exception as e:
             progress.close()
-            messagebox.showerror("Error", str(e))
+            _msg = str(e)
+            parent.after(0, lambda m=_msg: messagebox.showerror("Error", m))
 
     # 🔥 hilo secundario (clave para no congelar UI)
     threading.Thread(target=tarea, daemon=True).start()

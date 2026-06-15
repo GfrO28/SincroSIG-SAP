@@ -87,19 +87,19 @@ def exportar_excel(df_fn, soc_sel: str) -> None:
                         total_monto = 0.0
                     whs_group = str(df_group.iloc[0]['WhsCode'])
 
-                    worksheet.write(current_row, 0,  item_code,         total_format)
-                    worksheet.write(current_row, 1,  "-",               total_format)
-                    worksheet.write(current_row, 2,  "SUMATORIA TOTAL", total_format)
-                    worksheet.write(current_row, 3,  total_monto,       num_total_format)
-                    worksheet.write(current_row, 4,  "-",               total_format)
-                    worksheet.write(current_row, 5,  whs_group,         total_format)
-                    worksheet.write(current_row, 6,  "C0001",           total_format)
-                    worksheet.write(current_row, 7,  tienda_fmt,        total_format)
-                    worksheet.write(current_row, 8,  "-",               total_format)
-                    worksheet.write(current_row, 9,  "-",               total_format)
-                    worksheet.write(current_row, 10, "-",               total_format)
-                    worksheet.write(current_row, 11, "-",               total_format)
-                    worksheet.write(current_row, 12, "-",               total_format)
+                    worksheet.write(current_row, 0,  item_code,         total_format)     # ItemCode
+                    worksheet.write(current_row, 1,  "-",               total_format)     # Descripcion
+                    worksheet.write(current_row, 2,  "-",               total_format)     # Fecha
+                    worksheet.write(current_row, 3,  "SUMATORIA TOTAL", total_format)     # Concepto
+                    worksheet.write(current_row, 4,  total_monto,       num_total_format) # Monto_A_Ingresar
+                    worksheet.write(current_row, 5,  "-",               total_format)     # Costo_SIG
+                    worksheet.write(current_row, 6,  whs_group,         total_format)     # WhsCode
+                    worksheet.write(current_row, 7,  "C0001",           total_format)     # Centro_Costo
+                    worksheet.write(current_row, 8,  tienda_fmt,        total_format)     # ID_SIG
+                    worksheet.write(current_row, 9,  "-",               total_format)     # Stock_A_Fecha
+                    worksheet.write(current_row, 10, "-",               total_format)     # Stock_SIG
+                    worksheet.write(current_row, 11, "-",               total_format)     # Movimiento
+                    worksheet.write(current_row, 12, "-",               total_format)     # ID_Movimiento
                     current_row += 2
 
                 worksheet.set_column(0, 12, 18)

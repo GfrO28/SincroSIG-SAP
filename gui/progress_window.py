@@ -42,6 +42,16 @@ class ProgressWindow:
 
         self._win.update()
 
+    @property
+    def top(self):
+        return self._win
+
+    def winfo_exists(self):
+        try:
+            return self._win.winfo_exists()
+        except Exception:
+            return False
+
     def update(self, value: float, text: str = ""):
         self._var.set(value)
         self._pct_lbl.config(text=f"{int(value)}%")

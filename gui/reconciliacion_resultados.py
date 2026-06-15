@@ -72,8 +72,8 @@ def mostrar_ventana_resultados(parent, df_ajustes, soc_sel: str, n_logs_bd: int 
     # ── Auditoría ──────────────────────────────────────────────────────────────
     _cola_df = df_ajustes[df_ajustes['Concepto'].str.contains('COLA', na=False)]
     _niv_df  = df_ajustes[df_ajustes['Concepto'].str.contains('NIVELACIÓN', na=False)]
-    _n_prim  = len(_cola_df[_cola_df['Is_Primary'].eq(True)])
-    _n_sec   = len(_cola_df[_cola_df['Is_Primary'].eq(False)])
+    _n_prim  = len(_cola_df[_cola_df['Is_Primary'].eq(True)]) if 'Is_Primary' in _cola_df.columns else 0
+    _n_sec   = len(_cola_df[_cola_df['Is_Primary'].eq(False)]) if 'Is_Primary' in _cola_df.columns else 0
     _n_art_n = _niv_df['ItemCode'].nunique()
 
     audit_frame = tk.Frame(main_frame, bg="#1a1a2e", bd=1, relief="solid")
@@ -257,7 +257,7 @@ def mostrar_ventana_resultados(parent, df_ajustes, soc_sel: str, n_logs_bd: int 
                 parent_iid = tree.insert("", "end", open=var_expandir_todo.get(),
                                          tags=('total_row',), values=(
                     item_code, desc_grupo, "-", "SUMATORIA TOTAL",
-                    f"{total_monto:.4f}", costo_grupo, whs_group, "C0001", tienda_fmt, "-", "-", "-"
+                    f"{total_monto:.4f}", costo_grupo, whs_group, "C0001", tienda_fmt, "-", "-", "-", "-"
                 ))
 
                 for _, row in df_group.iterrows():

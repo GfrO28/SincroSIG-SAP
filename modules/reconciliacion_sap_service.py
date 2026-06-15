@@ -56,7 +56,10 @@ def calcular_ajustes_tres_vias(df_sap, df_logs, df_saldos):
 
         # Si no hay saldo pero sí hay logs, inferir tienda del primer log
         if id_sig_niv == "N/A" and not logs_item.empty:
-            id_sig_niv = str(int(logs_item.iloc[0]['id_sig']))
+            try:
+                id_sig_niv = str(int(logs_item.iloc[0]['id_sig']))
+            except (ValueError, TypeError):
+                pass
 
         fecha_base = str(logs_item.iloc[0]['fecha']) if not logs_item.empty else "SIN FECHA"
 
@@ -78,7 +81,10 @@ def calcular_ajustes_tres_vias(df_sap, df_logs, df_saldos):
         for _, log in logs_item.iterrows():
             cant_salida = round(float(log['qty']), 4)
             is_primary  = bool(log.get('is_primary', True))
-            id_sig_log  = str(int(log['id_sig'])) if 'id_sig' in log else id_sig_niv
+            try:
+                id_sig_log = str(int(log['id_sig'])) if 'id_sig' in log else id_sig_niv
+            except (ValueError, TypeError):
+                id_sig_log = id_sig_niv
             monto_inyectar = 0.0
             stk_sim_r = round(stk_simulado, 4)
             if stk_sim_r < cant_salida:
