@@ -13,8 +13,8 @@ from gui.progress_window import ProgressWindow
 _INSERT_SQL = """
     INSERT INTO incidencias_salidas
       (lote_id, fecha_carga, sociedad, fecha_proceso,
-       item_code, id_tienda, whs_code, tipo_incidencia, descripcion)
-    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+       item_code, id_tienda, whs_code, tipo_incidencia, descripcion, precio, cantidad)
+    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
 """
 
 
@@ -146,10 +146,19 @@ def migrar_bd_local(df_ajustes: pd.DataFrame, soc_sel: str, parent_widget, on_su
                 else:
                     tipo_inc = 'COLA_SECUNDARIA'
 
+                try:
+                    precio = float(row['Costo_SIG']) if pd.notna(row.get('Costo_SIG')) else None
+                except Exception:
+                    precio = None
+                try:
+                    cantidad = float(row.get('Monto_A_Ingresar', 0.0))
+                except Exception:
+                    cantidad = 0.0
+
                 rows.append((
                     lote_id, fecha_carga, soc_sel, fecha_p,
                     str(row['ItemCode']), id_tienda_fmt, str(row['WhsCode']),
-                    tipo_inc, str(row.get('Descripcion', '')),
+                    tipo_inc, str(row.get('Descripcion', '')), precio, cantidad,
                 ))
 
             cur.executemany(_INSERT_SQL, rows)

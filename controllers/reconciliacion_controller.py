@@ -18,6 +18,7 @@ from modules.reconciliacion_query import (
     parsear_logs_para_query,
     parsear_logs_para_cruce,
     construir_queries_sap,
+    construir_query_documento,
     guardar_queries,
     escribir_log_parseo,
 )
@@ -76,6 +77,119 @@ def _construir_ui(win, sociedades: list):
         row=0, column=2, padx=(15, 2))
     ent_hasta = CampoFecha(frame_fechas, initialdate=_ayer)
     ent_hasta.grid(row=0, column=3, padx=5)
+
+    var_modo_historico = tk.BooleanVar(value=False)
+    chk_historico = tb.Checkbutton(
+        frame_fechas,
+        text="Modo histórico (usar saldo SIG a la fecha seleccionada)",
+        variable=var_modo_historico,
+        bootstyle="warning-round-toggle",
+    )
+    chk_historico.grid(row=1, column=0, columnspan=4, padx=10, pady=(0, 8), sticky="w")
+
+    # ── Documento de referencia (opcional) ───────────────────────────────────
+    frame_doc_ref = tb.LabelFrame(container, text=" 3. Documento de referencia (opcional) ")
+    frame_doc_ref.pack(fill="x", pady=(0, 6))
+
+    var_doc_ref = tk.BooleanVar(value=False)
+    _doctime    = [None]   # DocTime SAP extraído del resultado pegado (entero HHMM)
+
+    row_doc_header = tb.Frame(frame_doc_ref)
+    row_doc_header.pack(fill="x", padx=10, pady=(6, 2))
+
+    # Contenido colapsable (oculto hasta activar el toggle)
+    frame_doc_body = tb.Frame(frame_doc_ref)
+
+    # Paso 1: DocNum + DocDate + botón generar query
+    row_doc_inputs = tb.Frame(frame_doc_body)
+    row_doc_inputs.pack(fill="x", pady=(4, 4))
+
+    tb.Label(row_doc_inputs, text="Paso 1 —", font=("Segoe UI", 9, "bold")).pack(side="left", padx=(0, 6))
+    tb.Label(row_doc_inputs, text="N° Documento:", font=("Segoe UI", 9)).pack(side="left", padx=(0, 4))
+    ent_doc_num = tb.Entry(row_doc_inputs, width=10)
+    ent_doc_num.pack(side="left", padx=(0, 10))
+    tb.Label(row_doc_inputs, text="Fecha:", font=("Segoe UI", 9)).pack(side="left", padx=(0, 4))
+    ent_doc_fecha = CampoFecha(row_doc_inputs, initialdate=_ayer)
+    ent_doc_fecha.pack(side="left", padx=(0, 10))
+
+    def _generar_query_doc():
+        doc_num_str = ent_doc_num.get().strip()
+        if not doc_num_str.isdigit():
+            messagebox.showwarning("N° inválido", "Ingrese un número de documento válido.", parent=win)
+            return
+        fecha_sap = ent_doc_fecha.get().replace('-', '')   # YYYYMMDD
+        query = construir_query_documento(int(doc_num_str), fecha_sap)
+        pyperclip.copy(query)
+        messagebox.showinfo(
+            "Query copiado",
+            "Query de documento copiado al portapapeles.\n\n"
+            "Ejecútelo en SAP y pegue el resultado con el botón del Paso 2.",
+            parent=win,
+        )
+
+    tb.Button(row_doc_inputs, text="📋 Generar query documento",
+              bootstyle="info-outline", command=_generar_query_doc).pack(side="left")
+
+    # Paso 2: Pegar resultado SAP → extraer DocTime
+    row_doc_paste = tb.Frame(frame_doc_body)
+    row_doc_paste.pack(fill="x", pady=(0, 8))
+
+    tb.Label(row_doc_paste, text="Paso 2 —", font=("Segoe UI", 9, "bold")).pack(side="left", padx=(0, 6))
+
+    lbl_doc_hora = tb.Label(row_doc_paste, text="Hora no extraída aún.",
+                             font=("Segoe UI", 9, "italic"), bootstyle="secondary")
+
+    def _pegar_resultado_doc():
+        try:
+            df = pd.read_clipboard(sep='\t')
+            df.columns = [c.strip() for c in df.columns]
+            # Buscar DocTime por distintos nombres que SAP puede devolver
+            _candidatas = ['Tiempo de generación', 'Tiempo de generacion', 'DocTime', 'Hora_Bruto', 'Hour', 'Hora', 'Time']
+            col_encontrada = next((c for c in _candidatas if c in df.columns), None)
+            if col_encontrada:
+                val = str(df.iloc[0][col_encontrada]).strip()
+                if ':' in val:
+                    h, m = val.split(':')[:2]
+                    _doctime[0] = int(h) * 100 + int(m)
+                else:
+                    _doctime[0] = int(float(val))
+            else:
+                raise ValueError(
+                    f"No se encontró la columna de hora.\n"
+                    f"Columnas recibidas: {list(df.columns)}\n\n"
+                    f"Asegúrese de copiar el resultado del query generado en el Paso 1."
+                )
+            hora_fmt = f"{_doctime[0] // 100:02d}:{_doctime[0] % 100:02d}"
+            lbl_doc_hora.config(
+                text=f"✓  Hora extraída: {hora_fmt}  (DocTime SAP: {_doctime[0]})",
+                bootstyle="success",
+                font=("Segoe UI", 9, "bold"),
+            )
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo extraer la hora:\n{e}", parent=win)
+
+    tb.Button(row_doc_paste, text="📋 Pegar resultado SAP",
+              bootstyle="secondary", command=_pegar_resultado_doc).pack(side="left", padx=(0, 10))
+    lbl_doc_hora.pack(side="left")
+
+    def _toggle_doc_ref():
+        if var_doc_ref.get():
+            frame_doc_body.pack(fill="x", padx=10, pady=(0, 4))
+            var_modo_historico.set(True)
+        else:
+            frame_doc_body.pack_forget()
+            _doctime[0] = None
+            lbl_doc_hora.config(text="Hora no extraída aún.", bootstyle="secondary",
+                                 font=("Segoe UI", 9, "italic"))
+
+    chk_doc_ref = tb.Checkbutton(
+        row_doc_header,
+        text="Filtrar stock SAP hasta la hora de un documento específico",
+        variable=var_doc_ref,
+        bootstyle="info-round-toggle",
+        command=_toggle_doc_ref,
+    )
+    chk_doc_ref.pack(side="left")
 
     # ── Botón generar query + cargar Excel ────────────────────────────────────
     frame_top_btns = tb.Frame(container)
@@ -136,7 +250,7 @@ def _construir_ui(win, sociedades: list):
              font=("Segoe UI", 8, "bold")).pack(anchor="w", padx=(10, 6), pady=(4, 1))
     txt_migradas = tk.Text(
         migradas_frame, bg="#0f2a0f", fg="#555555",
-        font=("Segoe UI", 8), height=2, bd=0,
+        font=("Segoe UI", 8), height=6, bd=0,
         state="disabled", wrap="none", cursor="arrow",
         selectbackground="#0f2a0f",
     )
@@ -272,7 +386,20 @@ def _construir_ui(win, sociedades: list):
                     return
 
                 from config.constants import DIR_SAP_QUERY
-                queries = construir_queries_sap(items_set)
+                doc_fecha_sap = None
+                doc_hora_int  = None
+                if var_doc_ref.get():
+                    if _doctime[0] is None:
+                        progress.close()
+                        win.after(0, lambda: messagebox.showwarning(
+                            "Hora no extraída",
+                            "Pegue primero el resultado del query de documento (Paso 2) "
+                            "para que el programa pueda extraer la hora exacta."
+                        ))
+                        return
+                    doc_fecha_sap = ent_doc_fecha.get().replace('-', '')  # YYYYMMDD
+                    doc_hora_int  = _doctime[0]
+                queries = construir_queries_sap(items_set, doc_fecha=doc_fecha_sap, doc_hora=doc_hora_int)
                 folder  = guardar_queries(queries, soc_sel, str(DIR_SAP_QUERY))
                 pyperclip.copy(queries[0])
 
@@ -331,7 +458,11 @@ def _construir_ui(win, sociedades: list):
                 df_logs = pd.DataFrame(logs_procesados)
 
                 items = list(df_logs['item'].unique()) if not df_logs.empty else []
-                df_saldos = cargar_saldos(cur_sig, tiendas_ids, items)
+                if var_modo_historico.get():
+                    fecha_hist = ent_doc_fecha.get() if var_doc_ref.get() else ent_hasta.get()
+                else:
+                    fecha_hist = None
+                df_saldos = cargar_saldos(cur_sig, tiendas_ids, items, fecha_hasta=fecha_hist)
 
                 df_sap_cruce = df_sap.copy()
                 if not df_logs.empty:

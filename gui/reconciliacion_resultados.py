@@ -290,13 +290,22 @@ def mostrar_ventana_resultados(parent, df_ajustes, soc_sel: str, n_logs_bd: int 
 
     construir_tabs(_df_activo())
 
+    # Auto-generar Excel al abrir la ventana
+    top.after(300, lambda: exportar_excel(_df_activo, soc_sel))
+
     # ── Botones de acción (btn_frame ya fue empaquetado arriba con side="bottom") ─
     tb.Button(btn_frame, text="📥 Generar Excel de Auditoría", bootstyle="success",
               command=lambda: exportar_excel(_df_activo, soc_sel)
               ).pack(side="left", expand=True, fill="x", padx=(0, 6))
-    tb.Button(btn_frame, text="🗄 Migrar a BD Local", bootstyle="primary",
-              command=lambda: migrar_bd_local(
-                  df_ajustes, soc_sel, top,
-                  on_success=lambda: on_migrado(soc_sel) if on_migrado else None
-              )
-              ).pack(side="left", expand=True, fill="x")
+
+    btn_migrar = tb.Button(btn_frame, text="🗄 Migrar a BD Local", bootstyle="primary")
+
+    def _migrar_una_vez():
+        btn_migrar.config(state="disabled", text="🗄 Migración enviada")
+        migrar_bd_local(
+            df_ajustes, soc_sel, top,
+            on_success=lambda: on_migrado(soc_sel) if on_migrado else None,
+        )
+
+    btn_migrar.config(command=_migrar_una_vez)
+    btn_migrar.pack(side="left", expand=True, fill="x")

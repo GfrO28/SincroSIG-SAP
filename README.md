@@ -127,3 +127,94 @@ El campo `message` de `log_transfer_sunsap` contiene el índice de la línea fal
 ## Seguridad
 
 El archivo `.env` contiene credenciales de producción. Está incluido en `.gitignore` y **nunca debe subirse al repositorio**.
+
+---
+
+## Instalación en equipos adicionales
+
+### Requisitos del equipo destino
+
+| Requisito | Obligatorio | Notas |
+|---|---|---|
+| `SincroSIG_Setup_x.x.x.exe` | ✅ | No requiere Python ni librerías |
+| Archivo `.env` con credenciales | ✅ | Copiar manualmente a la carpeta de instalación |
+| Acceso de red a servidores SIG/WEB/tiendas | ✅ | VPN o red local |
+| MySQL Server local | Solo si usa "Migrar a BD local" | Ver sección BD local más abajo |
+
+### Pasos
+
+1. Ejecutar el instalador `SincroSIG_Setup_x.x.x.exe`
+2. Copiar el `.env` con credenciales reales a:
+   ```
+   C:\Users\<usuario>\AppData\Local\Programs\SincroSIG\
+   ```
+3. En el `.env` del equipo destino, configurar `LOCAL_DB_HOST` con el **IP de la PC que tiene MySQL** (no `localhost`):
+   ```env
+   LOCAL_DB_HOST=192.168.XXX.XXX   # IP del equipo con MySQL, no localhost
+   LOCAL_DB_USER=pwbi_reader
+   LOCAL_DB_PASS=contraseña
+   LOCAL_DB_NAME=salidas_sap
+   ```
+
+---
+
+## Configuración de BD local para migración multi-equipo
+
+Si varios equipos van a migrar datos a una misma BD MySQL central, se requiere configuración en el equipo que tiene MySQL instalado.
+
+### 1. Verificar que MySQL escucha en red
+
+Desde CMD en el equipo con MySQL:
+```cmd
+netstat -an | findstr 3306
+```
+- `0.0.0.0:3306` → ya acepta conexiones externas ✓
+- `127.0.0.1:3306` → solo escucha localmente → editar `my.ini` y agregar bajo `[mysqld]`:
+  ```ini
+  bind-address = 0.0.0.0
+  ```
+  Luego reiniciar el servicio MySQL en `services.msc`.
+
+### 2. Abrir el puerto 3306 en el firewall (PowerShell como Administrador)
+
+```powershell
+New-NetFirewallRule -DisplayName "MySQL 3306 - Red interna" `
+  -Direction Inbound -Protocol TCP -LocalPort 3306 `
+  -RemoteAddress "192.168.XXX.0/24" `
+  -Action Allow -Profile Private
+```
+Reemplaza `192.168.XXX.0/24` con el rango de tu red local.
+
+### 3. Verificar que la red está en perfil Privado
+
+```powershell
+Get-NetConnectionProfile
+```
+Si `NetworkCategory` dice `Public`:
+```powershell
+Set-NetConnectionProfile -InterfaceAlias "Ethernet" -NetworkCategory Private
+```
+
+### 4. Crear usuario MySQL por cada equipo autorizado
+
+```sql
+GRANT SELECT, INSERT ON salidas_sap.* TO 'pwbi_reader'@'192.168.XXX.XXX' IDENTIFIED BY 'password';
+FLUSH PRIVILEGES;
+```
+Un `GRANT` por cada IP de equipo que vaya a migrar datos.
+
+### 5. Probar conectividad desde el equipo remoto (PowerShell)
+
+```powershell
+Test-NetConnection -ComputerName 192.168.21.147 -Port 3306
+```
+- `TcpTestSucceeded : True` → listo ✓
+- `TcpTestSucceeded : False` → revisar firewall y `bind-address`
+
+### Errores comunes
+
+| Error | Causa | Solución |
+|---|---|---|
+| `2003 (10060)` | Firewall bloqueando o MySQL no escucha en red | Verificar `bind-address` y regla de firewall |
+| `1045 (28000) @'127.0.0.1'` | `LOCAL_DB_HOST=localhost` en el `.env` del equipo remoto | Cambiar a la IP real del servidor MySQL |
+| `1045 (28000) @'192.168.x.x'` | No hay `GRANT` para esa IP en MySQL | Agregar `GRANT` para esa IP |

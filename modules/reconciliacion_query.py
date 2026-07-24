@@ -122,6 +122,20 @@ def _build_error_entry(log_row: dict, js: dict) -> dict:
 
 # ── Query building ─────────────────────────────────────────────────────────────
 
+def construir_query_documento(doc_num: int, doc_fecha: str) -> str:
+    """
+    Genera el query SAP para obtener la hora exacta de un ingreso (OIGN).
+    doc_fecha: formato YYYYMMDD (ej: '20260629')
+    """
+    return (
+        'SELECT T0."DocNum" AS "DocNum",T0."DocDate" AS "DocDate",'
+        'T0."DocTime" AS "DocTime",'
+        'TO_VARCHAR(TO_TIME(LPAD(T0."DocTime",4,\'0\'),\'HH24MI\'),\'HH12:MI AM\') AS "Hora_Exacta",'
+        'T1."U_NAME" AS "Usuario_Creador" '
+        'FROM OIGN T0 INNER JOIN OUSR T1 ON T0."UserSign"=T1."USERID" '
+        f'WHERE T0."DocNum"={doc_num} AND T0."DocDate"=\'{doc_fecha}\''
+    )
+
 _SAP_QUERY_HEADER = (
     'SELECT T0."ItemCode",T0."Warehouse" "WhsCode",'
     'T1."ItemName" "Descripcion",'
@@ -132,13 +146,29 @@ _SAP_QUERY_FOOTER = ' GROUP BY T0."ItemCode",T0."Warehouse",T1."ItemName"'
 _CHAR_LIMIT       = 30_000
 
 
-def construir_queries_sap(items_set: set, char_limit: int = _CHAR_LIMIT) -> list:
+def construir_queries_sap(items_set: set, char_limit: int = _CHAR_LIMIT,
+                          doc_fecha: str = None, doc_hora: int = None) -> list:
     """
     Construye uno o más queries SAP para la lista de (ItemCode, WhsCode).
     Divide en lotes si el query supera char_limit caracteres.
+
+    doc_fecha: fecha en formato YYYYMMDD (ej: '20260629')
+    doc_hora:  DocTime SAP como entero HHMM (ej: 1430 para 14:30)
+    Cuando se proveen, el stock acumula solo hasta ese momento exacto.
     """
-    overhead    = len(_SAP_QUERY_HEADER) + len(_SAP_QUERY_FOOTER)
-    conditions  = [
+    time_filter = ""
+    if doc_fecha:
+        if doc_hora is not None:
+            time_filter = (
+                f' AND (T0."DocDate"<\'{doc_fecha}\''
+                f' OR (T0."DocDate"=\'{doc_fecha}\' AND T0."DocTime"<{doc_hora}))'
+            )
+        else:
+            time_filter = f' AND T0."DocDate"<=\'{doc_fecha}\''
+
+    # +2 para los paréntesis envolventes cuando hay time_filter
+    overhead   = len(_SAP_QUERY_HEADER) + len(time_filter) + len(_SAP_QUERY_FOOTER) + (2 if time_filter else 0)
+    conditions = [
         f'(T0."ItemCode"=\'{item}\' AND T0."Warehouse"=\'{whs}\')'
         for item, whs in items_set
     ]
@@ -155,7 +185,11 @@ def construir_queries_sap(items_set: set, char_limit: int = _CHAR_LIMIT) -> list
     if current:
         batches.append(current)
 
-    return [_SAP_QUERY_HEADER + " OR ".join(b) + _SAP_QUERY_FOOTER for b in batches]
+    queries = []
+    for b in batches:
+        body = "(" + " OR ".join(b) + ")" if time_filter else " OR ".join(b)
+        queries.append(_SAP_QUERY_HEADER + body + time_filter + _SAP_QUERY_FOOTER)
+    return queries
 
 
 def guardar_queries(queries: list, soc_sel: str, folder: str) -> str:

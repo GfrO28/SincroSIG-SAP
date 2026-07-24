@@ -54,24 +54,37 @@ def cargar_logs_bd(cur_sig, tiendas_ids: list, f_desde: str, f_hasta: str) -> li
     return list(seen.values())
 
 
-def cargar_saldos(cur_sig, tiendas_ids: list, items: list) -> pd.DataFrame:
+def cargar_saldos(cur_sig, tiendas_ids: list, items: list, fecha_hasta: str = None) -> pd.DataFrame:
     """
     Carga los saldos SIG para los ítems y tiendas dados.
     Agrega la columna WhsCode mapeada desde MAPEO_TIENDAS_SAP.
     Retorna una fila por (ItemCode, idtienda) con el fproceso más reciente.
+    Si fecha_hasta se indica, toma el saldo vigente a esa fecha (fproceso <= fecha_hasta).
     """
     if not tiendas_ids or not items:
         return pd.DataFrame()
 
     ph_tiendas = ",".join(["%s"] * len(tiendas_ids))
     ph_items   = ",".join(["%s"] * len(items))
-    cur_sig.execute(
-        f"SELECT fproceso, saldoinicial, ingresos, salidas, costoprom, "
-        f"       idproductos AS ItemCode, idtienda "
-        f"FROM saldos "
-        f"WHERE idtienda IN ({ph_tiendas}) AND idproductos IN ({ph_items})",
-        (*tiendas_ids, *items)
-    )
+
+    if fecha_hasta:
+        cur_sig.execute(
+            f"SELECT fproceso, saldoinicial, ingresos, salidas, costoprom, "
+            f"       idproductos AS ItemCode, idtienda "
+            f"FROM saldos "
+            f"WHERE idtienda IN ({ph_tiendas}) AND idproductos IN ({ph_items})"
+            f"  AND fproceso <= %s",
+            (*tiendas_ids, *items, fecha_hasta)
+        )
+    else:
+        cur_sig.execute(
+            f"SELECT fproceso, saldoinicial, ingresos, salidas, costoprom, "
+            f"       idproductos AS ItemCode, idtienda "
+            f"FROM saldos "
+            f"WHERE idtienda IN ({ph_tiendas}) AND idproductos IN ({ph_items})",
+            (*tiendas_ids, *items)
+        )
+
     df = pd.DataFrame(cur_sig.fetchall())
     if df.empty:
         return df
