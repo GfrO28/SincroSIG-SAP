@@ -5,6 +5,7 @@ import pandas as pd
 import pyperclip
 
 from modules.reconciliacion_export import exportar_excel, migrar_bd_local
+from gui.diagnostico_panel import abrir_panel_diagnostico
 from config.utils import set_window_icon
 
 
@@ -294,6 +295,9 @@ def mostrar_ventana_resultados(parent, df_ajustes, soc_sel: str, n_logs_bd: int 
     top.after(300, lambda: exportar_excel(_df_activo, soc_sel))
 
     # ── Botones de acción (btn_frame ya fue empaquetado arriba con side="bottom") ─
+    tb.Button(btn_frame, text="🔍 Diagnóstico de Artículos", bootstyle="warning",
+              command=lambda: abrir_panel_diagnostico(top, _df_activo(), soc_sel)
+              ).pack(side="left", expand=True, fill="x", padx=(0, 6))
     tb.Button(btn_frame, text="📥 Generar Excel de Auditoría", bootstyle="success",
               command=lambda: exportar_excel(_df_activo, soc_sel)
               ).pack(side="left", expand=True, fill="x", padx=(0, 6))
