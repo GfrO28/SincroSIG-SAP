@@ -929,11 +929,19 @@ def abrir_panel_diagnostico(parent, df_ajustes: pd.DataFrame, razon_social: str 
         'UOM inventario': 'UOM_Inv', 'UM inventario': 'UOM_Inv',
     }
 
-    # Mapping tienda (ID_SIG) → WhsCode SAP
+    def _norm_whs(whs) -> str:
+        """Normaliza WhsCode eliminando ceros iniciales en códigos numéricos ('03'→'3', 'C001'→'C001')."""
+        s = str(whs).strip()
+        try:
+            return str(int(s))
+        except (ValueError, TypeError):
+            return s
+
+    # Mapping tienda (ID_SIG) → WhsCode SAP (normalizado sin ceros iniciales)
     _tienda_whs: dict = {}
     for _, _r in df_ajustes.drop_duplicates(['ID_SIG', 'WhsCode']).iterrows():
         try:
-            _tienda_whs[str(int(float(str(_r['ID_SIG']))))] = str(_r['WhsCode'])
+            _tienda_whs[str(int(float(str(_r['ID_SIG']))))] = _norm_whs(_r['WhsCode'])
         except Exception:
             pass
 
@@ -994,11 +1002,12 @@ def abrir_panel_diagnostico(parent, df_ajustes: pd.DataFrame, razon_social: str 
             for (item_s, whs_s), g in df_sap_n.groupby(['ItemCode', 'Almacen']):
                 g = g.sort_values('Fecha')
                 running = _sfloat(g['Stock_Previo'].iloc[0]) if tiene_previo else 0.0
+                whs_norm = _norm_whs(whs_s)
                 for _, r in g.iterrows():
                     fstr = str(r['Fecha'])[:10]
                     ing  = _sfloat(r.get('Ingresos_SAP', 0))
                     sal  = _sfloat(r.get('Salidas_SAP',  0))
-                    sap_idx[(str(item_s), str(whs_s), fstr)] = {
+                    sap_idx[(str(item_s), whs_norm, fstr)] = {
                         'saldo_ini': running, 'ingresos': ing, 'salidas': sal,
                     }
                     running += ing - sal
