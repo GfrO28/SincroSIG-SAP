@@ -298,7 +298,11 @@ def _abrir_editor_uom(parent):
 
     def _guardar():
         _uom.guardar(diccionario)
-        messagebox.showinfo("Guardado", "Diccionario guardado.", parent=ed)
+        messagebox.showinfo(
+            "Guardado",
+            "Diccionario guardado en la base de datos SIG.\n"
+            "Los cambios serán visibles en todos los equipos de inmediato.",
+            parent=ed)
         ed.destroy()
 
     tb.Button(row_bot, text="📋 Query SAP — OUOM",
