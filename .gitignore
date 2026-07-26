@@ -32,6 +32,13 @@ env/
 *.suo
 *.user
 
+# PyInstaller
+*.spec.bak
+__pycache__/SincroSIG/
+
+# Instaladores generados (subir solo a GitHub Releases, no al repo)
+installer/SincroSIG_Setup_*.exe
+
 # Sistema operativo
 .DS_Store
 Thumbs.db

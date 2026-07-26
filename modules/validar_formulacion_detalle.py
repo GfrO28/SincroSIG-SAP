@@ -36,7 +36,8 @@ def validar_formulacion_detalle_varias(
     tiendas: List[int],
     nombre_archivo: str = None
 ) -> str:
-    carpeta = Path("SincroSIG/logs/formulaciones")
+    from config.constants import DIR_FORM_COMP
+    carpeta = DIR_FORM_COMP
     carpeta.mkdir(parents=True, exist_ok=True)
 
     if not nombre_archivo:

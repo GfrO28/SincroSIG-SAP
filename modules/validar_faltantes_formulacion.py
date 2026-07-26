@@ -13,7 +13,8 @@ def validar_faltantes_formulacion_varias(
       - EnSIGNoEnTienda  (acumula todas las tiendas)
     Guardado en SincroSIG/logs/formulaciones/<nombre_archivo>
     """
-    base_dir = os.path.join("SincroSIG", "logs", "formulaciones")
+    from config.constants import DIR_FORM_COMP
+    base_dir = str(DIR_FORM_COMP)
     os.makedirs(base_dir, exist_ok=True)
 
     # Ruta final del archivo

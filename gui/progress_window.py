@@ -1,41 +1,66 @@
+# gui/progress_window.py
+
 import tkinter as tk
-from tkinter import ttk
+import ttkbootstrap as tb
+from ttkbootstrap.constants import DETERMINATE
 
 
 class ProgressWindow:
-    def __init__(self, parent, titulo="Procesando..."):
-        self.top = tk.Toplevel(parent)
-        self.top.title(titulo)
-        self.top.geometry("400x120")
-        self.top.resizable(False, False)
+    """Ventana modal de progreso para operaciones largas (ej: descarga del instalador)."""
 
-        self.top.transient(parent)
-        self.top.grab_set()
+    def __init__(self, parent, titulo: str = "Procesando…"):
+        self._win = tb.Toplevel(parent)
+        self._win.title(titulo)
+        self._win.resizable(False, False)
+        self._win.transient(parent)
+        self._win.grab_set()
+        self._win.protocol("WM_DELETE_WINDOW", lambda: None)  # no cerrable manualmente
 
-        self.label = tk.Label(self.top, text="Iniciando...", anchor="w")
-        self.label.pack(fill="x", padx=10, pady=(10, 5))
+        w, h = 400, 130
+        self._win.update_idletasks()
+        px = parent.winfo_rootx() + (parent.winfo_width()  - w) // 2
+        py = parent.winfo_rooty() + (parent.winfo_height() - h) // 2
+        self._win.geometry(f"{w}x{h}+{max(0, px)}+{max(0, py)}")
 
-        self.progress = ttk.Progressbar(
-            self.top,
-            orient="horizontal",
-            length=350,
-            mode="determinate"
+        frame = tb.Frame(self._win, padding=20)
+        frame.pack(fill="both", expand=True)
+
+        self._lbl = tb.Label(frame, text="Iniciando…", font=("Segoe UI", 9), anchor="w")
+        self._lbl.pack(fill="x", pady=(0, 8))
+
+        self._var = tk.DoubleVar(value=0)
+        self._bar = tb.Progressbar(
+            frame, variable=self._var,
+            mode=DETERMINATE, bootstyle="info-striped",
+            length=360,
         )
-        self.progress.pack(padx=10, pady=5)
+        self._bar.pack(fill="x")
 
-        self.percent_label = tk.Label(self.top, text="0%")
-        self.percent_label.pack(pady=(0, 10))
+        self._pct_lbl = tb.Label(frame, text="0%", font=("Segoe UI", 8),
+                                 bootstyle="secondary")
+        self._pct_lbl.pack(anchor="e", pady=(4, 0))
 
-        self.top.update()
+        self._win.update()
 
-    def update(self, value, text=None):
-        self.progress["value"] = value
-        self.percent_label.config(text=f"{int(value)}%")
+    @property
+    def top(self):
+        return self._win
 
+    def winfo_exists(self):
+        try:
+            return self._win.winfo_exists()
+        except Exception:
+            return False
+
+    def update(self, value: float, text: str = ""):
+        self._var.set(value)
+        self._pct_lbl.config(text=f"{int(value)}%")
         if text:
-            self.label.config(text=text)
-
-        self.top.update_idletasks()
+            self._lbl.config(text=text)
+        self._win.update_idletasks()
 
     def close(self):
-        self.top.destroy()
+        try:
+            self._win.destroy()
+        except tk.TclError:
+            pass

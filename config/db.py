@@ -3,9 +3,6 @@
 import os
 import mysql.connector
 from config.settings import SIG_DB, WEB_DB
-from dotenv import load_dotenv
-
-load_dotenv()  # Carga las variables desde el archivo .env
 
 def get_connections():
     conn_sig = mysql.connector.connect(**SIG_DB)
@@ -15,6 +12,17 @@ def get_connections():
     cur_web = conn_web.cursor(dictionary=True)
 
     return conn_sig, cur_sig, conn_web, cur_web
+
+def get_local_db_connection():
+    conn = mysql.connector.connect(
+        host=os.getenv("LOCAL_DB_HOST", "localhost"),
+        user=os.getenv("LOCAL_DB_USER"),
+        password=os.getenv("LOCAL_DB_PASS"),
+        database=os.getenv("LOCAL_DB_NAME"),
+        charset="latin1",
+        collation="latin1_spanish_ci"
+    )
+    return conn, conn.cursor(dictionary=True)
 
 def get_store_connection(id_tienda: int):
     """
