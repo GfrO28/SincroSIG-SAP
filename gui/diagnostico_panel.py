@@ -388,12 +388,8 @@ def abrir_panel_diagnostico(parent, df_ajustes: pd.DataFrame, razon_social: str 
         paso1_ok = _df_sap_cache[0] is not None
         paso2_ok = _df_mov_cache[0] is not None
         paso3_ok = not _sig3[0].empty and _sap3[0] is not None
-        # Paso 4: ok si no hay faltantes detectados, o si ya se cargaron
-        try:
-            paso4_ok = (len(_faltantes_sap[0]) == 0
-                        or bool(tree4.get_children()))
-        except Exception:
-            paso4_ok = False
+        # Paso 4: ok si no hay faltantes, o si el usuario ya cargó el detalle
+        paso4_ok = (len(_faltantes_sap[0]) == 0 or _paso4_cargado[0])
         btn_export.config(
             state="normal" if (paso1_ok and paso2_ok and paso3_ok and paso4_ok) else "disabled"
         )
@@ -1199,6 +1195,7 @@ def abrir_panel_diagnostico(parent, df_ajustes: pd.DataFrame, razon_social: str 
         _sap3[0] = None
         _sig3[0] = pd.DataFrame()
         _faltantes_sap[0] = []
+        _paso4_cargado[0] = False
         for iid in tree3.get_children():
             tree3.delete(iid)
         lbl3_sig.config(text="SIG — saldos  (limpiado)", bootstyle="secondary")
@@ -1242,6 +1239,8 @@ def abrir_panel_diagnostico(parent, df_ajustes: pd.DataFrame, razon_social: str 
     tree4, _ = _make_tree(frame4, _TAB4_COLS,
                           [90, 90, 200, 60, 90, 110, 90, 280], height=20)
     tree4.tag_configure('faltante', background='#3D1A00', foreground='#FFB347')
+
+    _paso4_cargado: list = [False]
 
     def _actualizar_tab4():
         casos = list(set(_faltantes_sap[0]))
@@ -1298,6 +1297,8 @@ def abrir_panel_diagnostico(parent, df_ajustes: pd.DataFrame, razon_social: str 
                 lbl4_status.config(
                     text="Sin ingresos SIG encontrados para los casos detectados.",
                     bootstyle="warning")
+                _paso4_cargado[0] = True
+                _actualizar_btn_export()
                 return
             for r in rows:
                 tree4.insert("", "end", tags=('faltante',), values=(
@@ -1313,6 +1314,8 @@ def abrir_panel_diagnostico(parent, df_ajustes: pd.DataFrame, razon_social: str 
             lbl4_status.config(
                 text=f"✓ {len(rows)} registro(s) SIG — documentos pendientes de migrar a SAP",
                 bootstyle="success")
+            _paso4_cargado[0] = True
+            _actualizar_btn_export()
         except Exception as e:
             lbl4_status.config(text=f"Error SIG: {e}", bootstyle="danger")
 
