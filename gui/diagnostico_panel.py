@@ -1,7 +1,7 @@
 # gui/diagnostico_panel.py
 import tkinter as tk
 from tkinter import ttk, messagebox
-from datetime import date
+from datetime import date, timedelta
 
 import ttkbootstrap as tb
 import pandas as pd
@@ -351,28 +351,51 @@ def abrir_panel_diagnostico(parent, df_ajustes: pd.DataFrame, razon_social: str 
 
     hdr = tb.Frame(win, padding=(12, 6, 12, 2))
     hdr.pack(fill="x")
-    tb.Label(hdr, text=f"Artículos ({len(items)}):",
+
+    # ── Fila superior: controles a la derecha ─────────────────────────────
+    hdr_top = tb.Frame(hdr)
+    hdr_top.pack(fill="x")
+    tb.Label(hdr_top, text=f"Artículos ({len(items)}):",
              font=("Segoe UI", 9, "bold")).pack(side="left", padx=(0, 6))
-    tb.Label(hdr, text="  ·  ".join(items),
-             font=("Segoe UI", 9), bootstyle="secondary").pack(side="left")
-    btn_export = tb.Button(hdr, text="📥 Exportar Excel",
+    btn_export = tb.Button(hdr_top, text="📥 Exportar Excel",
                            bootstyle="success-outline", width=18,
                            state="disabled")
     btn_export.pack(side="right", padx=(0, 4))
-    ent_razon = tb.Entry(hdr, width=24, font=("Segoe UI", 9))
+    ent_razon = tb.Entry(hdr_top, width=24, font=("Segoe UI", 9))
     ent_razon.pack(side="right", padx=(0, 4))
     if razon_social:
         ent_razon.insert(0, razon_social)
-    tb.Label(hdr, text="Razón Social:",
+    tb.Label(hdr_top, text="Razón Social:",
              font=("Segoe UI", 9)).pack(side="right", padx=(8, 2))
 
+    # ── Fila inferior: lista de artículos (30 por fila) ───────────────────
+    _ITEMS_POR_FILA = 30
+    _filas = [items[i:i + _ITEMS_POR_FILA]
+              for i in range(0, len(items), _ITEMS_POR_FILA)]
+    _texto_items = "\n".join("  ·  ".join(f) for f in _filas)
+    _n_lineas    = min(len(_filas), 3)
+    txt_items = tk.Text(hdr, height=_n_lineas, font=("Segoe UI", 8),
+                        bg="#1a1a2e", fg="#8888aa", relief="flat",
+                        wrap="none", state="normal", cursor="arrow",
+                        bd=0, highlightthickness=0)
+    txt_items.insert("1.0", _texto_items)
+    txt_items.config(state="disabled")
+    txt_items.bind("<Key>", lambda e: "break")
+    txt_items.pack(fill="x", pady=(2, 0))
+
     def _actualizar_btn_export():
-        """Habilita exportar solo cuando los 3 pasos tienen datos cargados."""
+        """Habilita exportar solo cuando los 4 pasos están completos."""
         paso1_ok = _df_sap_cache[0] is not None
         paso2_ok = _df_mov_cache[0] is not None
         paso3_ok = not _sig3[0].empty and _sap3[0] is not None
+        # Paso 4: ok si no hay faltantes detectados, o si ya se cargaron
+        try:
+            paso4_ok = (len(_faltantes_sap[0]) == 0
+                        or bool(tree4.get_children()))
+        except Exception:
+            paso4_ok = False
         btn_export.config(
-            state="normal" if (paso1_ok and paso2_ok and paso3_ok) else "disabled"
+            state="normal" if (paso1_ok and paso2_ok and paso3_ok and paso4_ok) else "disabled"
         )
 
     # Barra de error SIG — Text seleccionable, visible solo cuando hay mensaje
@@ -712,7 +735,7 @@ def abrir_panel_diagnostico(parent, df_ajustes: pd.DataFrame, razon_social: str 
     row2 = tb.Frame(tab2)
     row2.pack(fill="x", pady=(0, 6))
     tb.Label(row2, text="Desde:", font=("Segoe UI", 9)).pack(side="left", padx=(0, 4))
-    ent2_desde = CampoFecha(row2, initialdate=date(2026, 6, 21))
+    ent2_desde = CampoFecha(row2, initialdate=date.today().replace(day=1))
     ent2_desde.pack(side="left", padx=(0, 14))
     btn2_gen   = tb.Button(row2, text="📋 Generar Query SAP (OINM)",
                            bootstyle="info-outline", width=28)
@@ -859,6 +882,7 @@ def abrir_panel_diagnostico(parent, df_ajustes: pd.DataFrame, razon_social: str 
 
     # ── Rango de fechas ───────────────────────────────────────────────────
     _hoy         = date.today()
+    _ayer        = _hoy - timedelta(days=1)
     _primer_mes  = date(_hoy.year, _hoy.month, 1)
 
     row3_dates = tb.Frame(tab3)
@@ -867,7 +891,7 @@ def abrir_panel_diagnostico(parent, df_ajustes: pd.DataFrame, razon_social: str 
     ent3_desde = CampoFecha(row3_dates, initialdate=_primer_mes)
     ent3_desde.pack(side="left", padx=(0, 12))
     tb.Label(row3_dates, text="Hasta:", font=("Segoe UI", 9)).pack(side="left", padx=(0, 4))
-    ent3_hasta = CampoFecha(row3_dates, initialdate=_hoy)
+    ent3_hasta = CampoFecha(row3_dates, initialdate=_ayer)
     ent3_hasta.pack(side="left")
 
     # ── Controles ─────────────────────────────────────────────────────────
