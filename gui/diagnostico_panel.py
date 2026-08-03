@@ -388,8 +388,9 @@ def abrir_panel_diagnostico(parent, df_ajustes: pd.DataFrame, razon_social: str 
         paso1_ok = _df_sap_cache[0] is not None
         paso2_ok = _df_mov_cache[0] is not None
         paso3_ok = not _sig3[0].empty and _sap3[0] is not None
-        # Paso 4: ok si no hay faltantes, o si el usuario ya cargó el detalle
-        paso4_ok = (len(_faltantes_sap[0]) == 0 or _paso4_cargado[0])
+        # Paso 4: ok si no hay faltantes (ni normales ni UOM), o si el usuario ya cargó el detalle
+        paso4_ok = ((len(_faltantes_sap[0]) == 0 and len(_faltantes_uom[0]) == 0)
+                    or _paso4_cargado[0])
         btn_export.config(
             state="normal" if (paso1_ok and paso2_ok and paso3_ok and paso4_ok) else "disabled"
         )
@@ -934,7 +935,8 @@ def abrir_panel_diagnostico(parent, df_ajustes: pd.DataFrame, razon_social: str 
     # Estado interno
     _sig3: list = [pd.DataFrame()]
     _sap3: list = [None]
-    _faltantes_sap: list = [[]]   # [(fecha, ItemCode, tienda), ...]
+    _faltantes_sap: list = [[]]   # [(fecha, ItemCode, tienda, diff), ...]
+    _faltantes_uom: list = [[]]   # ídem pero artículos con discrepancia de UOM
 
     _RENAME_SAP3 = {
         'ItemCode': 'ItemCode', 'Artículo': 'ItemCode',
@@ -997,6 +999,7 @@ def abrir_panel_diagnostico(parent, df_ajustes: pd.DataFrame, razon_social: str 
 
     def _poblar3():
         _faltantes_sap[0] = []
+        _faltantes_uom[0] = []
         for iid in tree3.get_children():
             tree3.delete(iid)
         df_sig = _sig3[0]
@@ -1119,7 +1122,11 @@ def abrir_panel_diagnostico(parent, df_ajustes: pd.DataFrame, razon_social: str 
                 obs  = "Sin datos SAP"
 
             if 'Falta ingreso en SAP' in obs and item not in _uom_mismatch_items[0]:
-                _faltantes_sap[0].append((fecha_str, item, tienda))
+                diferencia = round(float(ing_sig) - sap_data['ingresos'], 4)
+                _faltantes_sap[0].append((fecha_str, item, tienda, diferencia))
+            elif 'Falta ingreso en SAP' in obs and item in _uom_mismatch_items[0]:
+                diferencia = round(float(ing_sig) - sap_data['ingresos'], 4)
+                _faltantes_uom[0].append((fecha_str, item, tienda, diferencia))
             desc = desc_sap_idx.get(item) or str(row.get('descripcion', item))
             tree3.insert("", "end", tags=(tag,), values=(
                 fecha_str, item,
@@ -1195,6 +1202,7 @@ def abrir_panel_diagnostico(parent, df_ajustes: pd.DataFrame, razon_social: str 
         _sap3[0] = None
         _sig3[0] = pd.DataFrame()
         _faltantes_sap[0] = []
+        _faltantes_uom[0] = []
         _paso4_cargado[0] = False
         for iid in tree3.get_children():
             tree3.delete(iid)
@@ -1223,6 +1231,9 @@ def abrir_panel_diagnostico(parent, df_ajustes: pd.DataFrame, razon_social: str 
              font=("Segoe UI", 8, "italic"), bootstyle="secondary",
              wraplength=1260).pack(anchor="w", pady=(0, 4))
 
+    _var_filtro_nomig = tk.BooleanVar(value=False)
+    _rows4_cache: list = [[]]
+
     row4_ctrl = tb.Frame(tab4)
     row4_ctrl.pack(fill="x", pady=(0, 6))
     lbl4_status = tb.Label(row4_ctrl, text="Esperando análisis del Paso 3...",
@@ -1231,22 +1242,41 @@ def abrir_panel_diagnostico(parent, df_ajustes: pd.DataFrame, razon_social: str 
     btn4_cargar = tb.Button(row4_ctrl, text="🔍 Cargar ingresos SIG faltantes",
                             bootstyle="info-outline", width=32, state="disabled")
     btn4_cargar.pack(side="left")
+    tb.Checkbutton(
+        row4_ctrl,
+        text="Mostrar solo sin migrar a SAP",
+        variable=_var_filtro_nomig,
+        command=lambda: _render_tree4() if _rows4_cache[0] else None,
+        bootstyle="warning-round-toggle",
+    ).pack(side="left", padx=(16, 0))
 
     frame4 = tb.Frame(tab4)
     frame4.pack(fill="both", expand=True, pady=(4, 0))
     _TAB4_COLS = ["Fecha", "ItemCode", "Descripción", "Tienda",
-                  "N° Ingreso", "N° Documento", "Cantidad", "Obs. SIG"]
+                  "N° Ingreso", "N° Documento", "Cantidad", "Dif. Objetivo", "Estado", "Observación"]
     tree4, _ = _make_tree(frame4, _TAB4_COLS,
-                          [90, 90, 200, 60, 90, 110, 90, 280], height=20)
-    tree4.tag_configure('faltante', background='#3D1A00', foreground='#FFB347')
+                          [90, 90, 180, 60, 90, 110, 90, 100, 180, 320], height=20)
+    tree4.tag_configure('coincide',     background='#0A2E0A', foreground='#6BCB77')
+    tree4.tag_configure('faltante',     background='#3D1A00', foreground='#FFB347')
+    tree4.tag_configure('sin_match',    background='#1A1A2E', foreground='#7EB8F7')
+    tree4.tag_configure('sin_registro', background='#1A0A2E', foreground='#C9A8F5')
+    tree4.tag_configure('migrado_ok',   background='#2E2A00', foreground='#FFD966')
+    tree4.tag_configure('uom_error',    background='#2E0808', foreground='#FF8080')
 
     _paso4_cargado: list = [False]
 
     def _actualizar_tab4():
-        casos = list(set(_faltantes_sap[0]))
-        if casos:
+        n_normal = len(set(_faltantes_sap[0]))
+        n_uom    = len(set(_faltantes_uom[0]))
+        total    = n_normal + n_uom
+        if total:
+            partes = []
+            if n_normal:
+                partes.append(f"{n_normal} faltante(s) SAP")
+            if n_uom:
+                partes.append(f"{n_uom} con error UOM")
             lbl4_status.config(
-                text=f"⚠ {len(casos)} caso(s) 'Falta ingreso en SAP' — pulsar para cargar detalle SIG",
+                text=f"⚠ {' · '.join(partes)} — pulsar para cargar detalle SIG",
                 bootstyle="warning")
             btn4_cargar.config(state="normal")
         else:
@@ -1256,16 +1286,35 @@ def abrir_panel_diagnostico(parent, df_ajustes: pd.DataFrame, razon_social: str 
             btn4_cargar.config(state="disabled")
             for iid in tree4.get_children():
                 tree4.delete(iid)
+            _rows4_cache[0] = []
+
+    def _render_tree4():
+        for iid in tree4.get_children():
+            tree4.delete(iid)
+        solo_nomig = _var_filtro_nomig.get()
+        for tag, vals in _rows4_cache[0]:
+            if solo_nomig and tag != 'sin_registro':
+                continue
+            tree4.insert("", "end", tags=(tag,), values=vals)
 
     def _cargar_ingresos_faltantes():
         import mysql.connector
+        from collections import defaultdict
+        from itertools import combinations as _combs
         from config.settings import SIG_DB
-        casos = list(set(_faltantes_sap[0]))
-        if not casos:
+
+        casos     = list(set(_faltantes_sap[0]))
+        casos_uom = list(set(_faltantes_uom[0]))
+        todos     = casos + casos_uom
+        if not todos:
             return
-        ph   = ','.join('(%s,%s,%s)' for _ in casos)
+
+        uom_key_set   = {(f, i, t) for f, i, t, _ in casos_uom}
+        diff_por_caso = {(f, i, t): d for f, i, t, d in casos}
+
+        ph   = ','.join('(%s,%s,%s)' for _ in todos)
         args = []
-        for fecha, item_c, tid in casos:
+        for fecha, item_c, tid, _ in todos:
             try:
                 args.extend([fecha, int(item_c), int(tid)])
             except ValueError:
@@ -1276,7 +1325,7 @@ def abrir_panel_diagnostico(parent, df_ajustes: pd.DataFrame, razon_social: str 
             cur.execute(f"""
                 SELECT
                     ip.fproceso                                         AS fecha,
-                    ipd.idingprod,
+                    ip.idingprod,
                     ip.nrodocum                                         AS nrodocum,
                     CAST(ipd.idarticulos AS CHAR)                       AS ItemCode,
                     IFNULL(art.descrip1, CAST(ipd.idarticulos AS CHAR)) AS descripcion,
@@ -1290,9 +1339,30 @@ def abrir_panel_diagnostico(parent, df_ajustes: pd.DataFrame, razon_social: str 
                 ORDER BY ip.fproceso, ipd.idarticulos, ip.idtienda, ip.idingprod
             """, args)
             rows = cur.fetchall()
+
+            # Último mensaje de migración SAP por idingprod (batch)
+            log_status: dict = {}
+            if rows:
+                ids_ingprod = list({str(r['idingprod']) for r in rows})
+                ph_log = ','.join(['%s'] * len(ids_ingprod))
+                cur.execute(f"""
+                    SELECT idmovimiento, message, created_at
+                    FROM log_transfer_sunsap
+                    WHERE idmovimiento IN ({ph_log})
+                      AND nomtabla <> 'socionegocio'
+                    ORDER BY idmovimiento, created_at DESC
+                """, ids_ingprod)
+                for lr in cur.fetchall():
+                    mid = str(lr['idmovimiento'])
+                    if mid not in log_status:
+                        log_status[mid] = str(lr['message'] or '').strip()
+
             conn.close()
+
+            _rows4_cache[0] = []
             for iid in tree4.get_children():
                 tree4.delete(iid)
+
             if not rows:
                 lbl4_status.config(
                     text="Sin ingresos SIG encontrados para los casos detectados.",
@@ -1300,19 +1370,89 @@ def abrir_panel_diagnostico(parent, df_ajustes: pd.DataFrame, razon_social: str 
                 _paso4_cargado[0] = True
                 _actualizar_btn_export()
                 return
+
+            # Separar grupos: UOM vs normales
+            grupos_normal: dict = defaultdict(list)
+            grupos_uom:    dict = defaultdict(list)
             for r in rows:
-                tree4.insert("", "end", tags=('faltante',), values=(
-                    str(r['fecha']),
-                    str(r['ItemCode']),
-                    str(r['descripcion']),
-                    str(r['idtienda']),
-                    str(r['idingprod']),
-                    str(r['nrodocum']),
-                    f"{float(r['cantidad']):.4f}",
-                    str(r['obs']),
-                ))
+                key = (str(r['fecha']), str(r['ItemCode']), str(r['idtienda']))
+                if key in uom_key_set:
+                    grupos_uom[key].append(r)
+                else:
+                    grupos_normal[key].append(r)
+
+            def _subset_que_suma(cantidades: list, objetivo: float, tol: float = 0.001):
+                n = len(cantidades)
+                for sz in range(1, min(n + 1, 9)):
+                    for combo in _combs(range(n), sz):
+                        if abs(sum(cantidades[i] for i in combo) - objetivo) <= tol:
+                            return set(combo)
+                return None
+
+            _MSG_OK    = "se registro con éxito"
+            _OBS_UOM   = ("Ingresar manualmente diferencia debido a error de "
+                          "configuración de unidad de medida.")
+            _OBS_NOMIG = "SIN REGISTRO DE MIGRACIÓN A SAP"
+            _OBS_OK    = "Ingresar diferencia manual"
+
+            n_coincide = 0
+            all_keys   = sorted(set(list(grupos_normal) + list(grupos_uom)))
+
+            for key in all_keys:
+                fecha_k, item_k, tid_k = key
+
+                if key in uom_key_set:
+                    for r in grupos_uom[key]:
+                        raw_msg = log_status.get(str(r['idingprod']))
+                        vals = (
+                            str(r['fecha']), str(r['ItemCode']), str(r['descripcion']),
+                            str(r['idtienda']), str(r['idingprod']), str(r['nrodocum']),
+                            f"{float(r['cantidad']):.4f}", "—",
+                            raw_msg if raw_msg is not None else "-",
+                            _OBS_UOM,
+                        )
+                        _rows4_cache[0].append(('uom_error', vals))
+                else:
+                    grupo      = grupos_normal[key]
+                    objetivo   = diff_por_caso.get((fecha_k, item_k, tid_k))
+                    cantidades = [float(r['cantidad']) for r in grupo]
+                    idx_match  = _subset_que_suma(cantidades, objetivo) if objetivo is not None else None
+                    dif_str    = f"{objetivo:.4f}" if objetivo is not None else "—"
+
+                    for i, r in enumerate(grupo):
+                        raw_msg = log_status.get(str(r['idingprod']))
+
+                        if raw_msg is None:
+                            sap_estado  = "-"
+                            observacion = _OBS_NOMIG
+                            tag         = 'sin_registro'
+                        elif raw_msg.strip().lower() == _MSG_OK:
+                            sap_estado  = raw_msg
+                            observacion = _OBS_OK
+                            tag         = 'migrado_ok'
+                        else:
+                            sap_estado  = raw_msg
+                            observacion = ""
+                            if idx_match is not None and i in idx_match:
+                                tag = 'coincide'
+                                n_coincide += 1
+                            elif idx_match is not None:
+                                tag = 'faltante'
+                            else:
+                                tag = 'sin_match'
+
+                        vals = (
+                            str(r['fecha']), str(r['ItemCode']), str(r['descripcion']),
+                            str(r['idtienda']), str(r['idingprod']), str(r['nrodocum']),
+                            f"{float(r['cantidad']):.4f}", dif_str,
+                            sap_estado, observacion,
+                        )
+                        _rows4_cache[0].append((tag, vals))
+
+            _render_tree4()
             lbl4_status.config(
-                text=f"✓ {len(rows)} registro(s) SIG — documentos pendientes de migrar a SAP",
+                text=(f"✓ {len(rows)} registro(s) SIG — "
+                      f"{n_coincide} coinciden con la diferencia SAP↔SIG"),
                 bootstyle="success")
             _paso4_cargado[0] = True
             _actualizar_btn_export()
@@ -1349,15 +1489,21 @@ def abrir_panel_diagnostico(parent, df_ajustes: pd.DataFrame, razon_social: str 
 
         # tag → (bg_hex, fg_hex) — mismos colores que los tag_configure
         _TAG_COLORS = {
-            'diff':      ('3D1A00', 'FFB347'),
-            'diff_soft': ('2A2200', 'D4C57E'),
-            'sin_sap':   ('1A1A3D', '7EB8F7'),
-            'ok':        ('0A2E0A', '6BCB77'),
-            'sin_cfg':   ('2E0A0A', 'FF8080'),
-            'dev':       ('2E1A00', 'FFB347'),
-            'neg':       ('2E0A0A', 'FF8080'),
-            'manual':    ('1A002E', 'B388FF'),
-            'faltante':  ('3D1A00', 'FFB347'),
+            'diff':         ('3D1A00', 'FFB347'),
+            'diff_soft':    ('2A2200', 'D4C57E'),
+            'sin_sap':      ('1A1A3D', '7EB8F7'),
+            'ok':           ('0A2E0A', '6BCB77'),
+            'sin_cfg':      ('2E0A0A', 'FF8080'),
+            'dev':          ('2E1A00', 'FFB347'),
+            'neg':          ('2E0A0A', 'FF8080'),
+            'manual':       ('1A002E', 'B388FF'),
+            # Paso 4
+            'coincide':     ('0A2E0A', '6BCB77'),
+            'faltante':     ('3D1A00', 'FFB347'),
+            'sin_match':    ('1A1A2E', '7EB8F7'),
+            'sin_registro': ('1A0A2E', 'C9A8F5'),
+            'migrado_ok':   ('2E2A00', 'FFD966'),
+            'uom_error':    ('2E0808', 'FF8080'),
         }
         _NUM_COLS = {
             'Saldo Ini SIG', 'Ingresos SIG', 'Salidas SIG',
@@ -1408,15 +1554,15 @@ def abrir_panel_diagnostico(parent, df_ajustes: pd.DataFrame, razon_social: str 
         try:
             wb = openpyxl.Workbook()
             wb.remove(wb.active)
-            _write_sheet(wb, 'Paso1_Config',       tree_rep, rep_cols)
-            _write_sheet(wb, 'Paso2_Devoluciones', tree2, [
+            _write_sheet(wb, 'Paso1_Dif_Config_Articulo',       tree_rep, rep_cols)
+            _write_sheet(wb, 'Paso2_Movimientos_Negativos', tree2, [
                 "ItemCode", "Descripción", "Fecha", "Tipo", "Ref. Doc", "N° Asiento",
                 "Entrada", "Salida", "Neto", "Almacén",
                 "Creado Por", "Modificado Por", "Comentario",
             ])
-            _write_sheet(wb, 'Paso3_Saldos',       tree3, _SAL_COLS)
+            _write_sheet(wb, 'Paso3_Cruce_Saldos',       tree3, _SAL_COLS)
             if tree4.get_children():
-                _write_sheet(wb, 'Paso4_Ingresos_SIG', tree4, _TAB4_COLS)
+                _write_sheet(wb, 'Paso4_Consolidado_Errores', tree4, _TAB4_COLS)
             wb.save(path)
             messagebox.showinfo("Exportado",
                                 f"Diagnóstico guardado:\n{path}", parent=win)
