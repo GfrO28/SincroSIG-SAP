@@ -292,12 +292,39 @@ def _construir_ui(win, sociedades: list):
             df_nueva = pd.read_clipboard(sep='\t')
             df_nueva.columns = [c.strip() for c in df_nueva.columns]
             rename_map = {
+                # ItemCode — todas las variantes que SAP puede mostrar
                 'Número de artículo': 'ItemCode',
+                'Código de artículo': 'ItemCode',
+                'Artículo':           'ItemCode',
+                'Cód. artículo':      'ItemCode',
+                'N.º artículo':       'ItemCode',
+                'Cod. Artículo':      'ItemCode',
+                'Código':             'ItemCode',
+                # WhsCode
                 'Código de almacén':  'WhsCode',
-                'Stock_A_Fecha':      'Stock_A_Fecha',
+                'Almacén':            'WhsCode',
+                'Almacen':            'WhsCode',
+                'Warehouse':          'WhsCode',
+                # Descripcion
                 'ItemName':           'Descripcion',
+                'Descripción':        'Descripcion',
+                'Nombre del artículo':'Descripcion',
+                'Nombre artículo':    'Descripcion',
+                'Nombre de artículo': 'Descripcion',
             }
             df_nueva = df_nueva.rename(columns=rename_map)
+            # Validar columnas mínimas requeridas
+            cols_req = {'ItemCode', 'WhsCode', 'Stock_A_Fecha'}
+            faltantes = cols_req - set(df_nueva.columns)
+            if faltantes:
+                cols_encontradas = ', '.join(df_nueva.columns.tolist())
+                messagebox.showwarning(
+                    "Columnas faltantes",
+                    f"El resultado pegado no contiene: {', '.join(sorted(faltantes))}\n\n"
+                    f"Columnas encontradas: {cols_encontradas}\n\n"
+                    "Verifique que copió el resultado del query SAP correctamente.",
+                    parent=win)
+                return
             if 'WhsCode' in df_nueva.columns:
                 df_nueva['WhsCode'] = (df_nueva['WhsCode']
                                        .astype(str).str.strip().str.zfill(2))
