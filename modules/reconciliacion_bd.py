@@ -54,15 +54,22 @@ def cargar_logs_bd(cur_sig, tiendas_ids: list, f_desde: str, f_hasta: str) -> li
     return list(seen.values())
 
 
+_SALDOS_COLS = ['fproceso', 'saldoinicial', 'ingresos', 'salidas',
+                'costoprom', 'ItemCode', 'idtienda', 'WhsCode']
+
+
 def cargar_saldos(cur_sig, tiendas_ids: list, items: list, fecha_hasta: str = None) -> pd.DataFrame:
     """
     Carga los saldos SIG para los ítems y tiendas dados.
     Agrega la columna WhsCode mapeada desde MAPEO_TIENDAS_SAP.
     Retorna una fila por (ItemCode, idtienda) con el fproceso más reciente.
     Si fecha_hasta se indica, toma el saldo vigente a esa fecha (fproceso <= fecha_hasta).
+    Siempre retorna un DataFrame con las columnas correctas (nunca sin columnas).
     """
+    _empty = pd.DataFrame(columns=_SALDOS_COLS)
+
     if not tiendas_ids or not items:
-        return pd.DataFrame()
+        return _empty
 
     ph_tiendas = ",".join(["%s"] * len(tiendas_ids))
     ph_items   = ",".join(["%s"] * len(items))
@@ -87,7 +94,7 @@ def cargar_saldos(cur_sig, tiendas_ids: list, items: list, fecha_hasta: str = No
 
     df = pd.DataFrame(cur_sig.fetchall())
     if df.empty:
-        return df
+        return _empty
     df['WhsCode'] = df['idtienda'].astype(str).str.zfill(2).map(MAPEO_TIENDAS_SAP)
     df = df.sort_values('fproceso', ascending=False).drop_duplicates(['ItemCode', 'idtienda'])
     return df
