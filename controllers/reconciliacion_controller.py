@@ -555,6 +555,8 @@ def _construir_ui(win, sociedades: list):
                     df_s = df_s[~df_s['ItemCode'].astype(str).str.startswith('TOTAL')]
                     df_s = df_s.dropna(subset=['ItemCode'])
                     df_s = df_s[df_s['ItemCode'].astype(str).str.strip() != '']
+                    df_s['ItemCode'] = (df_s['ItemCode'].astype(str).str.strip()
+                                        .str.replace(r'\.0$', '', regex=True))
                 if 'Concepto' in df_s.columns:
                     df_s = df_s[df_s['Concepto'].astype(str) != 'SUMATORIA TOTAL']
                 if df_s.empty:

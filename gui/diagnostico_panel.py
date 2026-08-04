@@ -321,14 +321,18 @@ def _abrir_editor_uom(parent):
 # ────────────────────────────────────────────────────────────────────────────
 
 def abrir_panel_diagnostico(parent, df_ajustes: pd.DataFrame, razon_social: str = ""):
-    items = sorted(df_ajustes['ItemCode'].astype(str).unique().tolist())
+    def _clean_item(v) -> str:
+        s = str(v).strip()
+        return s[:-2] if s.endswith('.0') else s
+
+    items = sorted({_clean_item(v) for v in df_ajustes['ItemCode'].dropna()})
 
     # Pares exactos (ItemCode, tienda) y (ItemCode, WhsCode) — sin cruce entre tiendas
     _seen: set = set()
     item_tienda_pairs: list[tuple[str, str]] = []
     item_whs_pairs:    list[tuple[str, str]] = []
     for _, _r in df_ajustes.drop_duplicates(['ItemCode', 'ID_SIG']).iterrows():
-        _item = str(_r['ItemCode'])
+        _item = _clean_item(_r['ItemCode'])
         try:
             _tid = str(int(float(str(_r['ID_SIG']))))
         except Exception:
