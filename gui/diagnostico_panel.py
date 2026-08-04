@@ -95,6 +95,8 @@ def _renombrar(df: pd.DataFrame, mapa: dict) -> pd.DataFrame:
 
 def _sfloat(val, default=0.0) -> float:
     try:
+        if isinstance(val, str):
+            val = val.replace(',', '')
         f = float(val)
         return f if pd.notna(f) else default
     except Exception:

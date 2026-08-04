@@ -96,7 +96,9 @@ def calcular_ajustes_tres_vias(df_sap, df_logs, df_saldos):
 
         stk_post_cola = round(stk_simulado, 4)
 
-        # --- FASE B: NIVELACIÓN — brecha real después de cubrir todas las salidas fallidas ---
+        # --- FASE B: NIVELACIÓN ---
+        # SAP_final = stk_post_cola + nivelación → nivelación = stk_sig_real - stk_post_cola
+        # Esto garantiza que, tras ejecutar toda la cola, SAP quede igual a SIG.
         if stk_sig_real > stk_post_cola:
             dif = round(stk_sig_real - stk_post_cola, 4)
             registros_ajuste.append({

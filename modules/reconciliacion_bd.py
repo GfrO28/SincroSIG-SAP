@@ -96,5 +96,20 @@ def cargar_saldos(cur_sig, tiendas_ids: list, items: list, fecha_hasta: str = No
     if df.empty:
         return _empty
     df['WhsCode'] = df['idtienda'].astype(str).str.zfill(2).map(MAPEO_TIENDAS_SAP)
-    df = df.sort_values('fproceso', ascending=False).drop_duplicates(['ItemCode', 'idtienda'])
+
+    # Para cada (ItemCode, idtienda) quedarse solo con el fproceso más reciente,
+    # luego SUMAR saldoinicial/ingresos/salidas de todos los registros de ese período
+    # (artículos con doble stock en la misma fecha tienen dos filas que deben consolidarse)
+    df = df.sort_values('fproceso', ascending=False)
+    fproceso_reciente = df.groupby(['ItemCode', 'idtienda'])['fproceso'].transform('first')
+    df = df[df['fproceso'] == fproceso_reciente]
+    df = (df.groupby(['ItemCode', 'idtienda'], as_index=False)
+            .agg(
+                fproceso    =('fproceso',      'first'),
+                WhsCode     =('WhsCode',       'first'),
+                saldoinicial=('saldoinicial',   'sum'),
+                ingresos    =('ingresos',       'sum'),
+                salidas     =('salidas',        'sum'),
+                costoprom   =('costoprom',      'first'),
+            ))
     return df
