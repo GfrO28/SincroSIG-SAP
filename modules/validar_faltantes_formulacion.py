@@ -28,9 +28,21 @@ def validar_faltantes_formulacion_varias(
     all_en_tienda_no_sig = []
     all_en_sig_no_tienda = []
 
+    errores_conexion = []
+
     for id_tienda in tiendas:
-        conn_sig, cur_sig, _, _ = get_connections()
-        conn_tda, cur_tda = get_store_connection(id_tienda)
+        conn_sig, cur_sig = None, None
+        conn_tda, cur_tda = None, None
+        try:
+            conn_sig, cur_sig, _, _ = get_connections()
+            conn_tda, cur_tda = get_store_connection(id_tienda)
+        except Exception as e_conn:
+            errores_conexion.append(f"Tienda {id_tienda}: {e_conn}")
+            if conn_sig:
+                try: conn_sig.close()
+                except Exception: pass
+            print(f"[WARN] Sin conexión a tienda {id_tienda}: {e_conn}")
+            continue
         try:
             query = f"""
                  SELECT
@@ -116,3 +128,10 @@ def validar_faltantes_formulacion_varias(
             sheet_name="EnSIGNoEnTienda", index=False)
 
     print(f"\nArchivo único generado en: {ruta_archivo}")
+    if errores_conexion:
+        raise ConnectionError(
+            f"Archivo generado en:\n{ruta_archivo}\n\n"
+            "Sin conexión en las siguientes tiendas (verificar credenciales en .env):\n"
+            + "\n".join(errores_conexion)
+        )
+    return ruta_archivo

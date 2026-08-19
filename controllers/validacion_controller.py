@@ -1,5 +1,7 @@
+import threading
 from tkinter import messagebox
 from controllers.sync_controller import _ejecutar_proceso
+from gui.progress_window import ProgressWindow
 
 from modules import (
     validar_faltantes_personaltienda,
@@ -101,50 +103,75 @@ def abrir_validacion_formulaciones(root, obtener_tiendas_sig):
     # ===============================
     def ejecutar_validacion_faltantes():
         seleccionadas = [tid for tid, v in checks.items() if v.get()]
-
         if not seleccionadas:
             messagebox.showwarning("Atención", "Debes seleccionar al menos una tienda.")
             return
 
-        try:
-            ruta = validar_faltantes_formulacion.validar_faltantes_formulacion_varias(
-                seleccionadas,
-                nombre_archivo=None
-            )
+        progress = ProgressWindow(win, "Verificando formulaciones…")
 
-            messagebox.showinfo(
-                "Validación completada",
-                f"Archivo generado:\n{ruta}"
-            )
+        def _tarea():
+            try:
+                n = len(seleccionadas)
+                progress.update(10, f"Procesando {n} tienda(s)…")
+                ruta = validar_faltantes_formulacion.validar_faltantes_formulacion_varias(
+                    seleccionadas, nombre_archivo=None
+                )
+                progress.update(100, "Completado")
+                win.after(0, lambda: (
+                    progress.close(),
+                    win.destroy(),
+                    messagebox.showinfo("Validación completada", f"Archivo generado:\n{ruta}")
+                ))
+            except ConnectionError as e:
+                win.after(0, lambda m=str(e): (
+                    progress.close(),
+                    win.destroy(),
+                    messagebox.showwarning("Completado con advertencias", m)
+                ))
+            except Exception as e:
+                win.after(0, lambda m=str(e): (
+                    progress.close(),
+                    win.destroy(),
+                    messagebox.showerror("Error", f"Ocurrió un error:\n{m}")
+                ))
 
-        except Exception as e:
-            messagebox.showerror("Error", f"Ocurrió un error:\n{e}")
-
-        finally:
-            win.destroy()
+        threading.Thread(target=_tarea, daemon=True).start()
 
     def ejecutar_validacion_detalle():
         seleccionadas = [tid for tid, v in checks.items() if v.get()]
-
         if not seleccionadas:
             messagebox.showwarning("Atención", "Debes seleccionar al menos una tienda.")
             return
 
-        try:
-            ruta = validar_formulacion_detalle.validar_formulacion_detalle_varias(
-                seleccionadas
-            )
+        progress = ProgressWindow(win, "Verificando detalle de formulaciones…")
 
-            messagebox.showinfo(
-                "Validación completada",
-                f"Archivo generado:\n{ruta}"
-            )
+        def _tarea():
+            try:
+                n = len(seleccionadas)
+                progress.update(10, f"Procesando {n} tienda(s)…")
+                ruta = validar_formulacion_detalle.validar_formulacion_detalle_varias(
+                    seleccionadas
+                )
+                progress.update(100, "Completado")
+                win.after(0, lambda: (
+                    progress.close(),
+                    win.destroy(),
+                    messagebox.showinfo("Validación completada", f"Archivo generado:\n{ruta}")
+                ))
+            except ConnectionError as e:
+                win.after(0, lambda m=str(e): (
+                    progress.close(),
+                    win.destroy(),
+                    messagebox.showwarning("Completado con advertencias", m)
+                ))
+            except Exception as e:
+                win.after(0, lambda m=str(e): (
+                    progress.close(),
+                    win.destroy(),
+                    messagebox.showerror("Error", f"Ocurrió un error:\n{m}")
+                ))
 
-        except Exception as e:
-            messagebox.showerror("Error", f"Ocurrió un error:\n{e}")
-
-        finally:
-            win.destroy()
+        threading.Thread(target=_tarea, daemon=True).start()
 
     # ===============================
     # BOTONES

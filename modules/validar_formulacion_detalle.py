@@ -76,10 +76,26 @@ def validar_formulacion_detalle_varias(
           AND p.estado = 1
     """
 
+    errores_conexion = []
+
     with pd.ExcelWriter(ruta, engine="xlsxwriter") as writer:
         for id_tienda in tiendas:
-            conn_sig, cur_sig, _, _ = get_connections()
-            conn_tda, cur_tda = get_store_connection(id_tienda)
+            conn_sig, cur_sig = None, None
+            conn_tda, cur_tda = None, None
+            try:
+                conn_sig, cur_sig, _, _ = get_connections()
+                conn_tda, cur_tda = get_store_connection(id_tienda)
+            except Exception as e_conn:
+                msg = f"Tienda {id_tienda}: {e_conn}"
+                errores_conexion.append(msg)
+                print(f"❌ Sin conexión a {msg}")
+                pd.DataFrame([{"Error": f"Sin conexión: {e_conn}"}]).to_excel(
+                    writer, sheet_name=f"T{id_tienda}_Error", index=False
+                )
+                if conn_sig:
+                    try: conn_sig.close()
+                    except Exception: pass
+                continue
             try:
                 # 1) IDs de formulaciones en la tienda
                 cur_tda.execute(q_formu_tda.format(id_tienda=id_tienda))
@@ -235,4 +251,10 @@ def validar_formulacion_detalle_varias(
                 except: pass
 
     print(f"\n✅ Archivo generado: {ruta}")
+    if errores_conexion:
+        raise ConnectionError(
+            f"Archivo generado en:\n{ruta}\n\n"
+            "Sin conexión en las siguientes tiendas (verificar contraseña en .env):\n"
+            + "\n".join(errores_conexion)
+        )
     return str(ruta)

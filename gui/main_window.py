@@ -22,6 +22,7 @@ from controllers.validacion_controller import (
     abrir_validacion_formulaciones
 )
 from controllers.reconciliacion_controller import abrir_interfaz_reconciliacion
+from controllers.prm_controller import abrir_prm
 from config.utils import set_window_icon
 
 # ── Íconos (Twemoji 14 via jsDelivr CDN) ─────────────────────────────────────
@@ -31,6 +32,7 @@ _ICON_URLS = {
     "cargos":        "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f4cb.png",
     "formulaciones": "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f9ea.png",
     "sap":           "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f4ca.png",
+    "prm":           "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f4b0.png",
 }
 
 _ICON_FALLBACK = {
@@ -39,6 +41,7 @@ _ICON_FALLBACK = {
     "cargos":        "📋",
     "formulaciones": "🧪",
     "sap":           "📊",
+    "prm":           "💰",
 }
 
 _ICON_CACHE_DIR = Path(__file__).parent.parent / "assets" / "icons"
@@ -118,6 +121,7 @@ _PALETA = {
     "cargos":        "#6A1B9A",   # violeta
     "formulaciones": "#AD1457",   # rosa
     "sap":           "#E65100",   # naranja
+    "prm":           "#00695C",   # verde azulado
 }
 
 
@@ -258,6 +262,9 @@ def _construir_contenido(root, user_info, conn_sig, cur_sig, conn_web, cur_web):
         ("AJUSTES SAP",    "Reconciliación de Stock",
          "sap",            0, 1,
          lambda: abrir_interfaz_reconciliacion(root)),
+        ("PRM",            "Diferencias por Categoría",
+         "prm",            1, 1,
+         lambda: abrir_prm(root)),
     ]
 
     for titulo, sub, key, col, row, cmd in modulos:
