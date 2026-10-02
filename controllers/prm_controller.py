@@ -249,6 +249,8 @@ def _abrir_diferencias(root: tk.Misc, titulo: str, fn_compras, fn_gastos,
     _raw_g: list = [None]
     _df_c:  list = [None]
     _df_g:  list = [None]
+    _resumen_raw = [None]
+    _var_filtro_tda = tk.BooleanVar(value=False)
 
     # ── Header coloreado ──────────────────────────────────────────────────
     hdr_top = tk.Frame(win, bg=bg_header)
@@ -345,6 +347,17 @@ def _abrir_diferencias(root: tk.Misc, titulo: str, fn_compras, fn_gastos,
     tb.Button(ctrl, text="Generar Cruce", command=_generar,
               bootstyle="success").grid(row=2, column=2, pady=(10, 0))
 
+    def _aplicar_filtro_tda():
+        if _resumen_raw[0] is not None:
+            _poblar_tabla(_resumen_raw[0])
+
+    tb.Checkbutton(ctrl,
+                   text="Solo tiendas con DIF > 0.1",
+                   variable=_var_filtro_tda,
+                   command=_aplicar_filtro_tda,
+                   bootstyle="warning-round-toggle",
+                   ).grid(row=3, column=0, columnspan=3, sticky="w", pady=(6, 0))
+
     tk.Frame(win, height=2, bg="#0D1B2A").pack(fill="x")
 
     # ── Hint + tabla resumen ──────────────────────────────────────────────
@@ -381,11 +394,14 @@ def _abrir_diferencias(root: tk.Misc, titulo: str, fn_compras, fn_gastos,
         return s[:-2] if s.endswith(".0") else s
 
     def _poblar_tabla(resumen):
+        _resumen_raw[0] = resumen
         for item in tree.get_children():
             tree.delete(item)
         odd = True
         for _, row in resumen.iterrows():
             dif = float(row["DIF"])
+            if _var_filtro_tda.get() and abs(dif) <= 0.1:
+                continue
             if dif == 0:
                 tag = "row_odd" if odd else "row_even"
                 odd = not odd
@@ -555,6 +571,8 @@ def abrir_pea(root: tk.Misc) -> None:
     _pivot_tree_ref = [None]
     _tienda_difs    = {}          # {tienda_str: dif_float} precalculado al cargar DATA PEA
     _var_filtro     = tk.BooleanVar(value=False)
+    _var_filtro_fact = tk.BooleanVar(value=False)
+    _cruces_raw     = [None]     # lista completa sin filtrar para re-aplicar filtro de facturas
 
     # ── Control bar ───────────────────────────────────────────────────────
     ctrl_wrap = tk.Frame(win, bg="#1A2B3C")       # fondo azul oscuro para diferenciar
@@ -704,6 +722,17 @@ def abrir_pea(root: tk.Misc) -> None:
                    bootstyle="warning-round-toggle",
                    ).grid(row=4, column=0, columnspan=2, sticky="w", pady=(6, 0))
 
+    def _aplicar_filtro_facturas():
+        if _cruces_raw[0] is not None:
+            _poblar_facturas(_cruces_raw[0])
+
+    tb.Checkbutton(ctrl,
+                   text="Solo facturas con DIF > 0.1",
+                   variable=_var_filtro_fact,
+                   command=_aplicar_filtro_facturas,
+                   bootstyle="info-round-toggle",
+                   ).grid(row=5, column=0, columnspan=2, sticky="w", pady=(2, 0))
+
     # Auto-refresh al cambiar tienda (solo si los 3 archivos están cargados)
     def _on_tienda_change(_e=None):
         if _raw_c[0] is not None and _raw_is[0] is not None and _raw_pea[0] is not None:
@@ -827,9 +856,15 @@ def abrir_pea(root: tk.Misc) -> None:
     fact_tree.pack(fill="both", expand=True)
 
     def _poblar_facturas(cruces: list):
+        _cruces_raw[0] = cruces
         for item in fact_tree.get_children():
             fact_tree.delete(item)
-        for i, row in enumerate(cruces):
+        visible = (
+            [r for r in cruces if r["dif"] is not None and abs(r["dif"]) > 0.1
+             or r["tipo"] in ("solo_a", "solo_b")]
+            if _var_filtro_fact.get() else cruces
+        )
+        for i, row in enumerate(visible):
             vals = (row["key_a"], _fmt_num(row["val_a"]),
                     row["key_b"], _fmt_num(row["val_b"]),
                     _fmt_num(row["dif"]))
