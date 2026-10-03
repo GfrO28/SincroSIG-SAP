@@ -3,7 +3,7 @@
 ; Instala por usuario (sin UAC), acceso directo en escritorio + menú inicio.
 
 #define AppName      "SincroSIG"
-#define AppVersion   "1.4.1"
+#define AppVersion   "1.5.0"
 #define AppExeName   "SincroSIG.exe"
 #define AppPublisher "SincroSIG"
 #define SourceDir    "..\dist\SincroSIG"

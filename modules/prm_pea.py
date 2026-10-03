@@ -150,6 +150,20 @@ def cruzar_por_clave(df_a: pd.DataFrame, df_b: pd.DataFrame,
     return result
 
 
+def tienda_tiene_dif_facturas(df_c: pd.DataFrame, df_is: pd.DataFrame,
+                              tienda) -> bool:
+    """True si la tienda tiene al menos una factura con |dif| > 0.1 o sin match."""
+    cruces = cruzar_por_clave(
+        obtener_facturas_compras(df_c, tienda),
+        obtener_facturas_is(df_is, tienda),
+    )
+    return any(
+        r["tipo"] in ("solo_a", "solo_b") or
+        (r["dif"] is not None and abs(r["dif"]) > 0.1)
+        for r in cruces
+    )
+
+
 # ─── Detalle por factura (artículos) ─────────────────────────────────────────
 
 def obtener_articulos_compras(df_c: pd.DataFrame, tienda, nro_doc) -> pd.DataFrame:

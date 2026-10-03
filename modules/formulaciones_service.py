@@ -1,6 +1,6 @@
 # modules / formulaciones_service.py
 
-from config.db import get_store_connection, get_connections
+from config.db import get_store_connection, get_sig_connection
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import pandas as pd
 
@@ -8,44 +8,56 @@ import pandas as pd
 # INSUMOS RELACIONADOS A FORMULAS
 # ==========================================
 def obtener_formulas_por_insumos(cur, ids_insumos):
+    """Formulaciones activas (idarticulo, descripcion) cuya receta usa alguno de los insumos dados."""
     if not ids_insumos:
         return []
 
     placeholders = ",".join(["%s"] * len(ids_insumos))
 
     query = f"""
-        SELECT DISTINCT f.idarticulos
+        SELECT DISTINCT
+            f.idarticulos AS idarticulo,
+            f.descripcion
         FROM formulacion f
-        INNER JOIN formulaciondet fd 
-            ON f.idformulacion = fd.idformulacion
+        INNER JOIN formulaciondet fd ON fd.idformulacion = f.idformulacion
+        LEFT JOIN preciart p ON p.idarticulos = f.idarticulos
         WHERE fd.idarticulos IN ({placeholders})
+          AND f.activo = 1
+          AND p.estado = 1
+          AND f.descripcion NOT LIKE '%DLVY'
     """
 
     cur.execute(query, ids_insumos)
-    return [r["idarticulos"] for r in cur.fetchall()]
+    return [(r["idarticulo"], r["descripcion"]) for r in cur.fetchall()]
 
 
 # ==========================================
-# FORMULACIÓN SIG (LISTADO GENERAL)
+# BÚSQUEDA DE FORMULACIONES A DEMANDA (AUTOCOMPLETADO)
 # ==========================================
-def obtener_formulaciones_sig():
-    conn_sig, cur_sig, _, _ = get_connections()
+def obtener_formulaciones_por_texto(texto: str, limite: int = 50):
+    """
+    Busca formulaciones activas cuya descripción o código de artículo
+    contenga `texto`, limitado a `limite` resultados. No precarga el
+    catálogo completo: pensado para llamarse mientras el usuario escribe.
+    """
+    conn_sig, cur_sig = get_sig_connection()
     try:
-        cur_sig = conn_sig.cursor(dictionary=True)
-
+        like = f"%{texto}%"
         cur_sig.execute("""
             SELECT DISTINCT
                 f.idarticulos AS idarticulo,
                 f.descripcion
             FROM formulacion f
             INNER JOIN formulaciondet fd ON fd.idformulacion = f.idformulacion
-            LEFT JOIN preciart p ON p.idarticulos = f.idarticulos 
+            LEFT JOIN preciart p ON p.idarticulos = f.idarticulos
             WHERE f.activo = 1
               AND p.estado = 1
               AND f.descripcion NOT LIKE '%DLVY'
+              AND (f.descripcion LIKE %s OR f.idarticulos LIKE %s)
             GROUP BY f.idarticulos
             ORDER BY f.descripcion
-        """)
+            LIMIT %s
+        """, (like, like, limite))
 
         return [(r["idarticulo"], r["descripcion"]) for r in cur_sig.fetchall()]
 

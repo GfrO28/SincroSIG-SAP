@@ -3,13 +3,23 @@ from tkinter import ttk
 
 
 class SearchableCheckList:
-    def __init__(self, parent, items, height=400):
+    def __init__(self, parent, items, height=400, on_search=None,
+                 min_chars=2, debounce_ms=300):
         """
         items: lista de tuplas (id, texto_mostrar)
+        on_search: si se indica, en vez de filtrar `items` en memoria,
+            se llama on_search(texto) (con debounce) y se usa su resultado
+            como lista a mostrar — pensado para buscar contra la BD sin
+            precargar el catálogo completo.
         """
         self.parent = parent
         self.original_items = items  # datos originales
         self.filtered_items = items
+
+        self.on_search = on_search
+        self.min_chars = min_chars
+        self.debounce_ms = debounce_ms
+        self._debounce_job = None
 
         self.vars = {}  # id -> BooleanVar
 
@@ -76,6 +86,16 @@ class SearchableCheckList:
         for widget in self.inner_frame.winfo_children():
             widget.destroy()
 
+        if not self.filtered_items and self.on_search is not None:
+            texto = self.search_var.get().strip()
+            if len(texto) < self.min_chars:
+                msg = f"Escribe al menos {self.min_chars} caracteres para buscar…"
+            else:
+                msg = "Sin resultados."
+            ttk.Label(self.inner_frame, text=msg, foreground="gray").pack(
+                anchor="w", padx=5, pady=10)
+            return
+
         for item_id, text in self.filtered_items:
             if item_id not in self.vars:
                 self.vars[item_id] = tk.BooleanVar()
@@ -91,6 +111,17 @@ class SearchableCheckList:
     # FILTRO
     # ==========================================
     def _filtrar(self, *args):
+        if self.on_search is not None:
+            if self._debounce_job is not None:
+                try:
+                    self.frame.after_cancel(self._debounce_job)
+                except Exception:
+                    pass
+            texto = self.search_var.get().strip()
+            self._debounce_job = self.frame.after(
+                self.debounce_ms, lambda: self._buscar_remoto(texto))
+            return
+
         texto = self.search_var.get().lower()
 
         if not texto:
@@ -102,6 +133,17 @@ class SearchableCheckList:
             ]
 
         self._render_items()
+
+    def _buscar_remoto(self, texto):
+        self._debounce_job = None
+        if len(texto) < self.min_chars:
+            self.set_items([], reset_selection=False)
+            return
+        try:
+            nuevos = self.on_search(texto)
+        except Exception:
+            nuevos = []
+        self.set_items(nuevos, reset_selection=False)
 
     # ==========================================
     # SELECT ALL
@@ -128,14 +170,23 @@ class SearchableCheckList:
     # ==========================================
     # SET ITEMS (REUTILIZAR COMPONENTE)
     # ==========================================
-    def set_items(self, items):
+    def set_items(self, items, reset_selection=True):
         """
-        Permite reutilizar el componente con nuevos datos
+        Permite reutilizar el componente con nuevos datos.
+        reset_selection=False conserva la selección de items ya marcados
+        (necesario para búsquedas incrementales contra el servidor, donde
+        cada tanda de resultados reemplaza a la anterior pero lo elegido
+        antes debe seguir contando para get_selected()).
         """
         self.original_items = items
         self.filtered_items = items
-        self.vars.clear()
-        self.select_all_var.set(False)
+        if reset_selection:
+            self.vars.clear()
+            self.select_all_var.set(False)
+        else:
+            for item_id, _ in items:
+                if item_id not in self.vars:
+                    self.vars[item_id] = tk.BooleanVar()
         self._render_items()
 
     def set_checked(self, ids):

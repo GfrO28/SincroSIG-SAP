@@ -1,4 +1,4 @@
-__version__  = "1.4.1"
+__version__  = "1.5.0"
 GITHUB_REPO  = "GfrO28/SincroSIG-SAP"
 APP_NAME     = "SincroSIG\\SAP"
 APP_EXE      = "SincroSIG.exe"

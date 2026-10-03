@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from typing import Any, List, Dict, Union
 from pathlib import Path
 import pandas as pd
-from config.db import get_connections
+from config.db import get_sig_connection
 
 CACHE_DIR = "cache_datos"
 CACHE_EXPIRACION_HORAS = 72
@@ -173,9 +173,8 @@ def obtener_tiendas_sig():
     Devuelve una lista de tuplas (idtienda, nombre_mostrado, tipo)
     tipo = 1 (Lima), 2 (Provincia), 3 (Hotel)
     """
-    conn_sig, cur_sig, _, _ = get_connections()
+    conn_sig, cur_sig = get_sig_connection()
     try:
-        cur_sig = conn_sig.cursor(dictionary=True)
         cur_sig.execute("""
             SELECT
                 idtienda AS id,

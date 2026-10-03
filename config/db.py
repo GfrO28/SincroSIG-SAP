@@ -13,6 +13,15 @@ def get_connections():
 
     return conn_sig, cur_sig, conn_web, cur_web
 
+def get_sig_connection():
+    """
+    Conexión liviana solo a la base SIG, sin abrir también la conexión WEB.
+    Usar en vez de get_connections() cuando no se necesita la base WEB.
+    """
+    conn_sig = mysql.connector.connect(**SIG_DB)
+    cur_sig = conn_sig.cursor(dictionary=True)
+    return conn_sig, cur_sig
+
 def get_local_db_connection():
     conn = mysql.connector.connect(
         host=os.getenv("LOCAL_DB_HOST", "localhost"),

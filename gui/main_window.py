@@ -8,37 +8,22 @@ import ttkbootstrap as tb
 from config.db import get_connections
 from config.utils import obtener_tiendas_sig
 from version import APP_NAME, __version__
-from controllers.formulaciones_controller import abrir_interfaz_formulaciones
-from controllers.sync_controller import (
-    sync_personal_controller,
-    sync_estado_controller,
-    sync_personaltienda_controller,
-    sync_tiendas_controller,
-    sync_detallecargo_controller,
-    sync_cargos_controller
-)
-from controllers.validacion_controller import (
-    validar_personaltienda_controller,
-    abrir_validacion_formulaciones
-)
+from controllers.formulaciones_controller import abrir_formulaciones
 from controllers.reconciliacion_controller import abrir_interfaz_reconciliacion
 from controllers.prm_controller import abrir_prm
+from controllers.sgconta_controller import abrir_sgconta
 from config.utils import set_window_icon
 
 # ── Íconos (Twemoji 14 via jsDelivr CDN) ─────────────────────────────────────
 _ICON_URLS = {
-    "personal":      "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f465.png",
-    "tiendas":       "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f3ea.png",
-    "cargos":        "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f4cb.png",
+    "sgconta":       "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f5c2.png",
     "formulaciones": "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f9ea.png",
     "sap":           "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f4ca.png",
     "prm":           "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f4b0.png",
 }
 
 _ICON_FALLBACK = {
-    "personal":      "👥",
-    "tiendas":       "🏪",
-    "cargos":        "📋",
+    "sgconta":       "🗂️",
     "formulaciones": "🧪",
     "sap":           "📊",
     "prm":           "💰",
@@ -116,9 +101,7 @@ def _crear_modulo_card(parent, titulo, subtitulo, icono_name, comando, bg_accent
 
 # ── Módulos ───────────────────────────────────────────────────────────────────
 _PALETA = {
-    "personal":      "#1565C0",   # azul profundo
-    "tiendas":       "#2E7D32",   # verde
-    "cargos":        "#6A1B9A",   # violeta
+    "sgconta":       "#3F51B5",   # índigo
     "formulaciones": "#AD1457",   # rosa
     "sap":           "#E65100",   # naranja
     "prm":           "#00695C",   # verde azulado
@@ -247,23 +230,17 @@ def _construir_contenido(root, user_info, conn_sig, cur_sig, conn_web, cur_web):
     grid.pack(anchor="w")
 
     modulos = [
-        ("PERSONAL",       "Empleados · Estado",
-         "personal",       0, 0,
-         lambda: _run_personal(root, cur_web, conn_web)),
-        ("TIENDAS",        "Tiendas · Personal Tienda",
-         "tiendas",        1, 0,
-         lambda: _run_tiendas(root, cur_web, conn_web)),
-        ("CARGOS",         "Cargo · Personal Cargo",
-         "cargos",         2, 0,
-         lambda: _run_cargos(root, cur_web, conn_web)),
+        ("SGCONTA",        "Personal · Tiendas · Cargos",
+         "sgconta",        0, 0,
+         lambda: abrir_sgconta(root, cur_web, conn_web)),
         ("FORMULACIONES",  "TDA vs SIG · Reporte",
-         "formulaciones",  3, 0,
-         lambda: _run_formulaciones(root)),
+         "formulaciones",  1, 0,
+         lambda: abrir_formulaciones(root, obtener_tiendas_sig)),
         ("AJUSTES SAP",    "Reconciliación de Stock",
-         "sap",            0, 1,
+         "sap",            2, 0,
          lambda: abrir_interfaz_reconciliacion(root)),
         ("PRM",            "Diferencias por Categoría",
-         "prm",            1, 1,
+         "prm",            3, 0,
          lambda: abrir_prm(root)),
     ]
 
@@ -282,79 +259,3 @@ def _construir_contenido(root, user_info, conn_sig, cur_sig, conn_web, cur_web):
     tb.Label(footer, text=f"{APP_NAME} v{__version__}  ·  © 2026",
              font=("Segoe UI", 8),
              bootstyle="secondary").pack(side="left")
-
-
-# ── Helpers para comandos agrupados ──────────────────────────────────────────
-
-def _submenu(root, titulo, emoji, bg_header, items):
-    """
-    Crea un popup de submenú reutilizable.
-    items: list of (emoji, label, bootstyle, comando)
-    """
-    sub = tb.Toplevel(root)
-    sub.title(titulo)
-    sub.geometry(f"340x{70 + len(items) * 54}")
-    sub.resizable(False, False)
-    sub.grab_set()
-    set_window_icon(sub)
-
-    # ── Header coloreado ──────────────────────────────────────
-    hdr = tk.Frame(sub, bg=bg_header)
-    hdr.pack(fill="x")
-    tk.Label(hdr, text=f"{emoji}  {titulo}",
-             font=("Segoe UI", 13, "bold"),
-             bg=bg_header, fg="white", pady=12).pack()
-
-    tk.Frame(sub, height=1, bg="#222222").pack(fill="x")
-
-    # ── Botones ───────────────────────────────────────────────
-    body = tb.Frame(sub, padding=(14, 10, 14, 10))
-    body.pack(fill="both", expand=True)
-
-    for btn_emoji, texto, style, cmd in items:
-        tb.Button(body,
-                  text=f"  {btn_emoji}   {texto}",
-                  bootstyle=style,
-                  width=34,
-                  command=lambda c=cmd: (sub.destroy(), c())
-                  ).pack(fill="x", pady=4)
-
-    return sub
-
-
-def _run_personal(root, cur_web, conn_web):
-    _submenu(root, "PERSONAL", "👥", "#1565C0", [
-        ("👤", "Sincronizar Personal",        "info",
-         lambda: sync_personal_controller(root, cur_web, conn_web)),
-        ("🔄", "Sincronizar Estado Personal", "info",
-         lambda: sync_estado_controller(root, cur_web, conn_web)),
-    ])
-
-
-def _run_tiendas(root, cur_web, conn_web):
-    _submenu(root, "TIENDAS", "🏪", "#2E7D32", [
-        ("🏬", "Sincronizar Tiendas",          "success",
-         lambda: sync_tiendas_controller(root, cur_web, conn_web)),
-        ("🔗", "Sincronizar Tienda Personal",  "success",
-         lambda: sync_personaltienda_controller(root, cur_web, conn_web)),
-        ("✅", "Verificar Personal Tienda",    "warning",
-         lambda: validar_personaltienda_controller(root, cur_web, conn_web)),
-    ])
-
-
-def _run_cargos(root, cur_web, conn_web):
-    _submenu(root, "CARGOS", "📋", "#6A1B9A", [
-        ("🗂️",  "Sincronizar Cargo",           "secondary",
-         lambda: sync_detallecargo_controller(root, cur_web, conn_web)),
-        ("👥", "Sincronizar Personal Cargo",   "secondary",
-         lambda: sync_cargos_controller(root, cur_web, conn_web)),
-    ])
-
-
-def _run_formulaciones(root):
-    _submenu(root, "FORMULACIONES", "🧪", "#AD1457", [
-        ("🔍", "Verificar Formulación TDA vs SIG", "danger",
-         lambda: abrir_validacion_formulaciones(root, obtener_tiendas_sig)),
-        ("📊", "Reporte Comparativo",              "primary",
-         lambda: abrir_interfaz_formulaciones(root, obtener_tiendas_sig)),
-    ])
