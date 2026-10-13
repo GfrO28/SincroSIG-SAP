@@ -1,6 +1,6 @@
 import pandas as pd
 from config.db import get_connections
-from config.constants import MAPEO_TIENDAS_SAP
+from config.tiendas_sap_dict import cargar as cargar_mapeo_tiendas_sap
 
 
 def obtener_sociedades() -> list:
@@ -95,7 +95,8 @@ def cargar_saldos(cur_sig, tiendas_ids: list, items: list, fecha_hasta: str = No
     df = pd.DataFrame(cur_sig.fetchall())
     if df.empty:
         return _empty
-    df['WhsCode'] = df['idtienda'].astype(str).str.zfill(2).map(MAPEO_TIENDAS_SAP)
+    mapeo_tiendas_sap = cargar_mapeo_tiendas_sap()
+    df['WhsCode'] = df['idtienda'].astype(str).str.zfill(2).map(mapeo_tiendas_sap)
 
     # Para cada (ItemCode, idtienda) quedarse solo con el fproceso más reciente,
     # luego SUMAR saldoinicial/ingresos/salidas de todos los registros de ese período

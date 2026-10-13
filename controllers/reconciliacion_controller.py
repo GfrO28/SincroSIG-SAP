@@ -10,6 +10,7 @@ import ttkbootstrap as tb
 
 from config.db import get_connections
 from config.utils import set_window_icon
+from config import tiendas_sap_dict as _tiendas_sap
 from gui.progress_window import ProgressWindow
 from gui.widgets.calendar_widget import CampoFecha
 from gui.reconciliacion_resultados import mostrar_ventana_resultados
@@ -23,6 +24,116 @@ from modules.reconciliacion_query import (
     escribir_log_parseo,
 )
 from modules.reconciliacion_sap_service import calcular_ajustes_tres_vias
+
+
+# ────────────────────────────────────────────────────────────────────────────
+# Editor del mapeo idtienda (SIG) → WhsCode (SAP)
+# ────────────────────────────────────────────────────────────────────────────
+
+def _abrir_editor_tiendas_sap(parent):
+    """Ventana para ver/editar/guardar el mapeo idtienda → WhsCode SAP."""
+    mapeo = _tiendas_sap.cargar()
+
+    ed = tb.Toplevel(parent)
+    ed.title("Tiendas SAP — Mapeo idtienda → WhsCode")
+    ed.geometry("520x520")
+    set_window_icon(ed)
+
+    tb.Label(ed,
+             text="Cuando se abra una tienda nueva, agregue aquí su idtienda (SIG) "
+                  "y el WhsCode (código de almacén) que le corresponde en SAP. "
+                  "El cambio queda disponible de inmediato para todos los equipos.",
+             font=("Segoe UI", 8, "italic"), bootstyle="secondary",
+             wraplength=500).pack(anchor="w", padx=12, pady=(8, 4))
+
+    # ── Treeview del mapeo ────────────────────────────────────────────────
+    frame_t = tb.Frame(ed)
+    frame_t.pack(fill="both", expand=True, padx=12, pady=(0, 4))
+    tree_d = ttk.Treeview(frame_t, columns=("tienda", "whs"), show="headings", height=14)
+    tree_d.heading("tienda", text="idtienda (SIG)")
+    tree_d.heading("whs",    text="WhsCode (SAP)")
+    tree_d.column("tienda", width=240, anchor="w")
+    tree_d.column("whs",    width=240, anchor="w")
+    sb = ttk.Scrollbar(frame_t, orient="vertical", command=tree_d.yview)
+    tree_d.configure(yscroll=sb.set)
+    sb.pack(side="right", fill="y")
+    tree_d.pack(fill="both", expand=True)
+
+    def _poblar():
+        for iid in tree_d.get_children():
+            tree_d.delete(iid)
+        for tda, whs in sorted(mapeo.items(), key=lambda kv: int(kv[0])):
+            tree_d.insert("", "end", values=(tda, whs))
+
+    _poblar()
+
+    # ── Fila de entrada ───────────────────────────────────────────────────
+    row_add = tb.Frame(ed)
+    row_add.pack(fill="x", padx=12, pady=(0, 4))
+    tb.Label(row_add, text="idtienda:").pack(side="left", padx=(0, 4))
+    ent_tda = tb.Entry(row_add, width=10)
+    ent_tda.pack(side="left", padx=(0, 8))
+    tb.Label(row_add, text="WhsCode:").pack(side="left", padx=(0, 4))
+    ent_whs = tb.Entry(row_add, width=10)
+    ent_whs.pack(side="left", padx=(0, 8))
+
+    def _agregar():
+        k = ent_tda.get().strip()
+        v = ent_whs.get().strip()
+        if not k.isdigit() or not v:
+            messagebox.showwarning("Incompleto",
+                                    "idtienda debe ser numérico y WhsCode no puede estar vacío.",
+                                    parent=ed)
+            return
+        mapeo[k] = v
+        _poblar()
+        ent_tda.delete(0, "end")
+        ent_whs.delete(0, "end")
+
+    def _eliminar():
+        sel = tree_d.selection()
+        if not sel:
+            return
+        for iid in sel:
+            k = tree_d.item(iid, "values")[0]
+            mapeo.pop(k, None)
+        _poblar()
+
+    def _editar(event):
+        sel = tree_d.selection()
+        if not sel:
+            return
+        vals = tree_d.item(sel[0], "values")
+        ent_tda.delete(0, "end")
+        ent_tda.insert(0, vals[0])
+        ent_whs.delete(0, "end")
+        ent_whs.insert(0, vals[1])
+
+    tree_d.bind("<Double-1>", _editar)
+
+    tb.Button(row_add, text="+ Agregar / Actualizar",
+              bootstyle="success-outline", command=_agregar).pack(side="left", padx=(0, 6))
+    tb.Button(row_add, text="✕ Eliminar seleccionado",
+              bootstyle="danger-outline", command=_eliminar).pack(side="left")
+
+    # ── Fila guardar ──────────────────────────────────────────────────────
+    row_bot = tb.Frame(ed)
+    row_bot.pack(fill="x", padx=12, pady=(0, 10))
+
+    def _guardar():
+        _tiendas_sap.guardar(mapeo)
+        messagebox.showinfo(
+            "Guardado",
+            "Mapeo guardado en la base de datos SIG.\n"
+            "Los cambios serán visibles en todos los equipos de inmediato.",
+            parent=ed)
+        ed.destroy()
+
+    tb.Button(row_bot, text="💾 Guardar y cerrar",
+              bootstyle="success", command=_guardar).pack(side="left")
+    tb.Button(row_bot, text="Cerrar sin guardar",
+              bootstyle="secondary-outline",
+              command=ed.destroy).pack(side="right")
 
 
 def abrir_interfaz_reconciliacion(root):
@@ -55,8 +166,13 @@ def _construir_ui(win, sociedades: list):
     container.pack(fill="both", expand=True)
 
     # ── Sociedad ──────────────────────────────────────────────────────────────
-    tb.Label(container, text="1. Seleccione Sociedad:",
-             font=("Segoe UI", 9, "bold")).pack(anchor="w")
+    row_sociedad_hdr = tb.Frame(container)
+    row_sociedad_hdr.pack(fill="x")
+    tb.Label(row_sociedad_hdr, text="1. Seleccione Sociedad:",
+             font=("Segoe UI", 9, "bold")).pack(side="left")
+    tb.Button(row_sociedad_hdr, text="⚙ Tiendas SAP", bootstyle="warning-outline",
+              width=16, command=lambda: _abrir_editor_tiendas_sap(win)
+              ).pack(side="right")
     cbo_sociedad = tb.Combobox(container, state="readonly", width=80)
     cbo_sociedad['values'] = [s['rs1'] for s in sociedades]
     cbo_sociedad.pack(pady=(2, 6))

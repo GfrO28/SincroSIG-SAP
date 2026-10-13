@@ -4,7 +4,7 @@ from datetime import datetime
 
 import pandas as pd
 
-from config.constants import MAPEO_TIENDAS_SAP
+from config.tiendas_sap_dict import cargar as cargar_mapeo_tiendas_sap
 
 
 # ── Parsing ───────────────────────────────────────────────────────────────────
@@ -17,6 +17,7 @@ def parsear_logs_para_query(logs: list) -> tuple:
         (primary_set, secondary_set, errores_parseo)
         Cada set contiene tuplas (ItemCode, WhsCode).
     """
+    mapeo_tiendas_sap = cargar_mapeo_tiendas_sap()
     primary_set   = set()
     secondary_set = set()
     errores       = []
@@ -25,7 +26,7 @@ def parsear_logs_para_query(logs: list) -> tuple:
         try:
             js     = json.loads(l['json'])
             id_str = str(l['idtienda']).zfill(2)
-            whs    = MAPEO_TIENDAS_SAP.get(id_str)
+            whs    = mapeo_tiendas_sap.get(id_str)
             if not whs:
                 continue
             try:
@@ -53,7 +54,8 @@ def parsear_logs_para_cruce(logs: list) -> tuple:
         (logs_procesados, errores_parseo)
         logs_procesados: lista de dicts con whs, id_sig, id_mov, fecha, item, qty, is_primary.
     """
-    primary_items_global = _recolectar_primarios_globales(logs)
+    mapeo_tiendas_sap    = cargar_mapeo_tiendas_sap()
+    primary_items_global = _recolectar_primarios_globales(logs, mapeo_tiendas_sap)
 
     procesados = []
     errores    = []
@@ -62,7 +64,7 @@ def parsear_logs_para_cruce(logs: list) -> tuple:
         try:
             js      = json.loads(l['json'])
             id_str  = str(l['idtienda']).zfill(2)
-            whs_sap = MAPEO_TIENDAS_SAP.get(id_str)
+            whs_sap = mapeo_tiendas_sap.get(id_str)
             if not whs_sap:
                 continue
             try:
@@ -88,13 +90,13 @@ def parsear_logs_para_cruce(logs: list) -> tuple:
     return procesados, errores
 
 
-def _recolectar_primarios_globales(logs: list) -> set:
+def _recolectar_primarios_globales(logs: list, mapeo_tiendas_sap: dict) -> set:
     """Pre-pase: recolecta todos los (ItemCode, WhsCode) que son primarios en algún registro."""
     primary_items = set()
     for l in logs:
         try:
             js   = json.loads(l['json'])
-            whs  = MAPEO_TIENDAS_SAP.get(str(l['idtienda']).zfill(2))
+            whs  = mapeo_tiendas_sap.get(str(l['idtienda']).zfill(2))
             if not whs:
                 continue
             pidx  = int(l['message'].split('line: ')[1].split(']')[0]) - 1

@@ -1,0 +1,273 @@
+﻿pyinstaller : 238 INFO: PyInstaller: 6.20.0, contrib hooks: 2026.6
+En línea: 1 Carácter: 341
++ ... esktop\SincroSIG"; pyinstaller sincrosig.spec --clean -y 2>&1 | Tee-O ...
++                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (238 INFO: PyIns...b hooks: 2026.6:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+238 INFO: Python: 3.12.4
+278 INFO: Platform: Windows-11-10.0.26200-SP0
+278 INFO: Python environment: C:\Users\gfrov\AppData\Local\Programs\Python\Python312
+282 INFO: Removing temporary files and cleaning cache in C:\Users\gfrov\AppData\Local\pyinstaller
+1732 INFO: Module search paths (PYTHONPATH):
+['C:\\Users\\gfrov\\AppData\\Local\\Programs\\Python\\Python312\\Scripts\\pyinstaller.exe',
+ 'C:\\Users\\gfrov\\AppData\\Local\\Programs\\Python\\Python312\\python312.zip',
+ 'C:\\Users\\gfrov\\AppData\\Local\\Programs\\Python\\Python312\\DLLs',
+ 'C:\\Users\\gfrov\\AppData\\Local\\Programs\\Python\\Python312\\Lib',
+ 'C:\\Users\\gfrov\\AppData\\Local\\Programs\\Python\\Python312',
+ 'C:\\Users\\gfrov\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages',
+ 'C:\\Users\\gfrov\\Desktop\\SincroSIG']
+2248 INFO: Appending 'datas' from .spec
+2250 INFO: checking Analysis
+2250 INFO: Building Analysis because Analysis-00.toc is non existent
+2250 INFO: Looking for Python shared library...
+2250 INFO: Using Python shared library: C:\Users\gfrov\AppData\Local\Programs\Python\Python312\python312.dll
+2250 INFO: Running Analysis Analysis-00.toc
+2250 INFO: Target bytecode optimization level: 0
+2250 INFO: Initializing module dependency graph...
+2252 INFO: Initializing module graph hook caches...
+2433 INFO: Analyzing modules for base_library.zip ...
+3928 INFO: Processing standard module hook 'hook-encodings.py' from 
+'C:\\Users\\gfrov\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+4715 INFO: Processing standard module hook 'hook-heapq.py' from 
+'C:\\Users\\gfrov\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+6111 INFO: Processing standard module hook 'hook-pickle.py' from 
+'C:\\Users\\gfrov\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+8977 INFO: Caching module dependency graph...
+9017 INFO: Analyzing C:\Users\gfrov\Desktop\SincroSIG\app.py
+9043 INFO: Processing pre-find-module-path hook 'hook-tkinter.py' from 'C:\\Users\\gfrov\\AppData\\Local\\Programs\\Pyt
+hon\\Python312\\Lib\\site-packages\\PyInstaller\\hooks\\pre_find_module_path'
+9048 INFO: TclTkInfo: initializing cached Tcl/Tk info...
+9507 INFO: Processing standard module hook 'hook-_tkinter.py' from 
+'C:\\Users\\gfrov\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+9625 INFO: Processing standard module hook 'hook-PIL.py' from 
+'C:\\Users\\gfrov\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+9753 INFO: Processing standard module hook 'hook-PIL.Image.py' from 
+'C:\\Users\\gfrov\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+10161 INFO: Processing standard module hook 'hook-numpy.py' from 
+'C:\\Users\\gfrov\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+11224 INFO: Processing standard module hook 'hook-difflib.py' from 
+'C:\\Users\\gfrov\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+11574 INFO: Processing standard module hook 'hook-multiprocessing.util.py' from 
+'C:\\Users\\gfrov\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+11798 INFO: Processing standard module hook 'hook-xml.py' from 
+'C:\\Users\\gfrov\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+12154 INFO: Processing standard module hook 'hook-_ctypes.py' from 
+'C:\\Users\\gfrov\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+13258 INFO: Processing standard module hook 'hook-sysconfig.py' from 
+'C:\\Users\\gfrov\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+13365 INFO: Processing standard module hook 'hook-platform.py' from 
+'C:\\Users\\gfrov\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+15029 INFO: Processing pre-safe-import-module hook 'hook-typing_extensions.py' from 'C:\\Users\\gfrov\\AppData\\Local\\
+Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+15032 INFO: SetuptoolsInfo: initializing cached setuptools info...
+16427 INFO: Processing standard module hook 'hook-charset_normalizer.py' from 'C:\\Users\\gfrov\\AppData\\Local\\Progra
+ms\\Python\\Python312\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+16938 INFO: Processing standard module hook 'hook-xml.etree.cElementTree.py' from 
+'C:\\Users\\gfrov\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+17135 INFO: Processing standard module hook 'hook-PIL.ImageFilter.py' from 
+'C:\\Users\\gfrov\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+18983 INFO: Processing standard module hook 'hook-urllib3.py' from 'C:\\Users\\gfrov\\AppData\\Local\\Programs\\Python\
+\Python312\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+19139 INFO: Processing pre-safe-import-module hook 'hook-backports.py' from 'C:\\Users\\gfrov\\AppData\\Local\\Programs
+\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+19143 INFO: Setuptools: 'backports' appears to be a full setuptools-vendored copy - creating alias to 
+'setuptools._vendor.backports'!
+19157 INFO: Processing standard module hook 'hook-setuptools.py' from 
+'C:\\Users\\gfrov\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+19202 INFO: Processing pre-safe-import-module hook 'hook-distutils.py' from 'C:\\Users\\gfrov\\AppData\\Local\\Programs
+\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+19275 INFO: Processing pre-safe-import-module hook 'hook-jaraco.py' from 'C:\\Users\\gfrov\\AppData\\Local\\Programs\\P
+ython\\Python312\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+19277 INFO: Setuptools: 'jaraco' appears to be a full setuptools-vendored copy - creating alias to 
+'setuptools._vendor.jaraco'!
+19299 INFO: Processing pre-safe-import-module hook 'hook-more_itertools.py' from 'C:\\Users\\gfrov\\AppData\\Local\\Pro
+grams\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+19300 INFO: Setuptools: 'more_itertools' appears to be a setuptools-vendored copy - creating alias to 
+'setuptools._vendor.more_itertools'!
+19691 INFO: Processing pre-safe-import-module hook 'hook-packaging.py' from 'C:\\Users\\gfrov\\AppData\\Local\\Programs
+\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+19972 INFO: Processing standard module hook 'hook-setuptools._vendor.jaraco.text.py' from 
+'C:\\Users\\gfrov\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+19975 INFO: Processing pre-safe-import-module hook 'hook-importlib_resources.py' from 'C:\\Users\\gfrov\\AppData\\Local
+\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+20235 INFO: Processing pre-safe-import-module hook 'hook-importlib_metadata.py' from 'C:\\Users\\gfrov\\AppData\\Local\
+\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+20236 INFO: Setuptools: 'importlib_metadata' appears to be a setuptools-vendored copy - creating alias to 
+'setuptools._vendor.importlib_metadata'!
+20272 INFO: Processing standard module hook 'hook-setuptools._vendor.importlib_metadata.py' from 
+'C:\\Users\\gfrov\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+20365 INFO: Processing pre-safe-import-module hook 'hook-zipp.py' from 'C:\\Users\\gfrov\\AppData\\Local\\Programs\\Pyt
+hon\\Python312\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+20366 INFO: Setuptools: 'zipp' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.zipp'!
+20776 INFO: Processing pre-safe-import-module hook 'hook-tomli.py' from 'C:\\Users\\gfrov\\AppData\\Local\\Programs\\Py
+thon\\Python312\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+20777 INFO: Setuptools: 'tomli' appears to be a setuptools-vendored copy - creating alias to 
+'setuptools._vendor.tomli'!
+21620 INFO: Processing pre-safe-import-module hook 'hook-wheel.py' from 'C:\\Users\\gfrov\\AppData\\Local\\Programs\\Py
+thon\\Python312\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+21621 INFO: Setuptools: 'wheel' appears to be a setuptools-vendored copy - creating alias to 
+'setuptools._vendor.wheel'!
+22225 INFO: Processing standard module hook 'hook-certifi.py' from 'C:\\Users\\gfrov\\AppData\\Local\\Programs\\Python\
+\Python312\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+22380 INFO: Processing standard module hook 'hook-pandas.py' from 
+'C:\\Users\\gfrov\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+24019 INFO: Processing standard module hook 'hook-pytz.py' from 
+'C:\\Users\\gfrov\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+27290 INFO: Processing standard module hook 'hook-pandas.io.formats.style.py' from 
+'C:\\Users\\gfrov\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+29732 INFO: Processing standard module hook 'hook-pandas.plotting.py' from 
+'C:\\Users\\gfrov\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+30474 INFO: Processing standard module hook 'hook-openpyxl.py' from 'C:\\Users\\gfrov\\AppData\\Local\\Programs\\Python
+\\Python312\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+34400 INFO: Processing standard module hook 'hook-sqlite3.py' from 
+'C:\\Users\\gfrov\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+34793 INFO: Processing standard module hook 'hook-pandas.io.clipboard.py' from 
+'C:\\Users\\gfrov\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+35257 INFO: Processing standard module hook 'hook-dateutil.py' from 'C:\\Users\\gfrov\\AppData\\Local\\Programs\\Python
+\\Python312\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+35468 INFO: Processing pre-safe-import-module hook 'hook-six.moves.py' from 'C:\\Users\\gfrov\\AppData\\Local\\Programs
+\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+35878 INFO: Processing standard module hook 'hook-xml.dom.domreg.py' from 
+'C:\\Users\\gfrov\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+36986 INFO: Analyzing hidden import 'mysql.connector.aio'
+37296 INFO: Analyzing hidden import 'mysql.connector.aio.plugins.authentication_kerberos_client'
+37319 INFO: Analyzing hidden import 'mysql.connector.aio.plugins.authentication_ldap_sasl_client'
+37340 INFO: Analyzing hidden import 'mysql.connector.aio.plugins.authentication_oci_client'
+37355 INFO: Analyzing hidden import 'mysql.connector.aio.plugins.authentication_openid_connect_client'
+37365 INFO: Analyzing hidden import 'mysql.connector.aio.plugins.authentication_webauthn_client'
+37381 INFO: Analyzing hidden import 'mysql.connector.aio.plugins.mysql_clear_password'
+37391 INFO: Analyzing hidden import 'mysql.connector.aio.plugins.mysql_native_password'
+37402 INFO: Analyzing hidden import 'mysql.connector.aio.plugins.sha256_password'
+37412 INFO: Analyzing hidden import 'mysql.connector.django'
+37414 INFO: Analyzing hidden import 'mysql.connector.django.base'
+37509 INFO: Analyzing hidden import 'mysql.connector.django.compiler'
+37517 INFO: Analyzing hidden import 'mysql.connector.locales.eng'
+37524 INFO: Analyzing hidden import 'mysql.connector.locales.eng.client_error'
+37534 INFO: Analyzing hidden import 'mysql.connector.plugins.authentication_kerberos_client'
+37556 INFO: Analyzing hidden import 'mysql.connector.plugins.authentication_ldap_sasl_client'
+37578 INFO: Analyzing hidden import 'mysql.connector.plugins.authentication_oci_client'
+37593 INFO: Analyzing hidden import 'mysql.connector.plugins.authentication_openid_connect_client'
+37604 INFO: Analyzing hidden import 'mysql.connector.plugins.authentication_webauthn_client'
+37619 INFO: Analyzing hidden import 'mysql.connector.plugins.mysql_clear_password'
+37629 INFO: Analyzing hidden import 'mysql.connector.plugins.mysql_native_password'
+37639 INFO: Analyzing hidden import 'mysql.connector.plugins.sha256_password'
+37649 INFO: Analyzing hidden import 'ttkbootstrap.__main__'
+37683 INFO: Analyzing hidden import 'ttkbootstrap.dialogs.dialogs'
+37689 INFO: Analyzing hidden import 'ttkbootstrap.scrolled'
+37697 INFO: Analyzing hidden import 'ttkbootstrap.tableview'
+37765 INFO: Analyzing hidden import 'ttkbootstrap.toast'
+37770 INFO: Analyzing hidden import 'ttkbootstrap.tooltip'
+37777 INFO: Analyzing hidden import 'PIL.AvifImagePlugin'
+37798 INFO: Analyzing hidden import 'PIL.BdfFontFile'
+37818 INFO: Analyzing hidden import 'PIL.BlpImagePlugin'
+37842 INFO: Analyzing hidden import 'PIL.BufrStubImagePlugin'
+37852 INFO: Analyzing hidden import 'PIL.ContainerIO'
+37864 INFO: Analyzing hidden import 'PIL.CurImagePlugin'
+37873 INFO: Analyzing hidden import 'PIL.DcxImagePlugin'
+37893 INFO: Analyzing hidden import 'PIL.DdsImagePlugin'
+37919 INFO: Analyzing hidden import 'PIL.EpsImagePlugin'
+37939 INFO: Analyzing hidden import 'PIL.FitsImagePlugin'
+37950 INFO: Analyzing hidden import 'PIL.FliImagePlugin'
+37963 INFO: Analyzing hidden import 'PIL.FpxImagePlugin'
+37979 INFO: Analyzing hidden import 'PIL.FtexImagePlugin'
+37991 INFO: Analyzing hidden import 'PIL.GbrImagePlugin'
+38003 INFO: Analyzing hidden import 'PIL.GdImageFile'
+38014 INFO: Analyzing hidden import 'PIL.GribStubImagePlugin'
+38027 INFO: Analyzing hidden import 'PIL.Hdf5StubImagePlugin'
+38039 INFO: Analyzing hidden import 'PIL.IcnsImagePlugin'
+38095 INFO: Analyzing hidden import 'PIL.IcoImagePlugin'
+38112 INFO: Analyzing hidden import 'PIL.ImImagePlugin'
+38129 INFO: Analyzing hidden import 'PIL.ImageEnhance'
+38150 INFO: Analyzing hidden import 'PIL.ImageMorph'
+38165 INFO: Analyzing hidden import 'PIL.ImageTransform'
+38175 INFO: Analyzing hidden import 'PIL.ImtImagePlugin'
+38183 INFO: Analyzing hidden import 'PIL.IptcImagePlugin'
+38218 INFO: Analyzing hidden import 'PIL.McIdasImagePlugin'
+38230 INFO: Analyzing hidden import 'PIL.MicImagePlugin'
+38240 INFO: Analyzing hidden import 'PIL.MpegImagePlugin'
+38248 INFO: Analyzing hidden import 'PIL.MspImagePlugin'
+38260 INFO: Analyzing hidden import 'PIL.PSDraw'
+38272 INFO: Analyzing hidden import 'PIL.PalmImagePlugin'
+38286 INFO: Analyzing hidden import 'PIL.PcdImagePlugin'
+38295 INFO: Analyzing hidden import 'PIL.PcfFontFile'
+38310 INFO: Analyzing hidden import 'PIL.PdfImagePlugin'
+38365 INFO: Analyzing hidden import 'PIL.PixarImagePlugin'
+38374 INFO: Analyzing hidden import 'PIL.PsdImagePlugin'
+38389 INFO: Analyzing hidden import 'PIL.QoiImagePlugin'
+38404 INFO: Analyzing hidden import 'PIL.SgiImagePlugin'
+38417 INFO: Analyzing hidden import 'PIL.SpiderImagePlugin'
+38434 INFO: Processing standard module hook 'hook-PIL.SpiderImagePlugin.py' from 
+'C:\\Users\\gfrov\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+38436 INFO: Analyzing hidden import 'PIL.SunImagePlugin'
+38445 INFO: Analyzing hidden import 'PIL.TarIO'
+38454 INFO: Analyzing hidden import 'PIL.TgaImagePlugin'
+38466 INFO: Analyzing hidden import 'PIL.WalImageFile'
+38481 INFO: Analyzing hidden import 'PIL.WebPImagePlugin'
+38500 INFO: Analyzing hidden import 'PIL.WmfImagePlugin'
+38518 INFO: Analyzing hidden import 'PIL.XVThumbImagePlugin'
+38526 INFO: Analyzing hidden import 'PIL.XbmImagePlugin'
+38536 INFO: Analyzing hidden import 'PIL.XpmImagePlugin'
+38548 INFO: Analyzing hidden import 'PIL.__main__'
+38555 INFO: Analyzing hidden import 'PIL._tkinter_finder'
+38561 INFO: Analyzing hidden import 'PIL.report'
+38567 INFO: Analyzing hidden import 'babel'
+38568 INFO: Processing standard module hook 'hook-babel.py' from 
+'C:\\Users\\gfrov\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+39098 INFO: Processing module hooks (post-graph stage)...
+39169 INFO: Processing standard module hook 'hook-zoneinfo.py' from 'C:\\Users\\gfrov\\AppData\\Local\\Programs\\Python
+\\Python312\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+39317 WARNING: Hidden import "jinja2" not found!
+39813 INFO: Processing standard module hook 'hook-_tkinter.py' from 
+'C:\\Users\\gfrov\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+39821 INFO: Processing standard module hook 'hook-tzdata.py' from 'C:\\Users\\gfrov\\AppData\\Local\\Programs\\Python\\
+Python312\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+40633 INFO: Performing binary vs. data reclassification (3259 entries)
+63849 INFO: Looking for ctypes DLLs
+63894 INFO: Analyzing run-time hooks ...
+63900 INFO: Including run-time hook 'pyi_rth_inspect.py' from 
+'C:\\Users\\gfrov\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+63910 INFO: Including run-time hook 'pyi_rth_pkgutil.py' from 
+'C:\\Users\\gfrov\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+63919 INFO: Including run-time hook 'pyi_rth_multiprocessing.py' from 
+'C:\\Users\\gfrov\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+63930 INFO: Including run-time hook 'pyi_rth__tkinter.py' from 
+'C:\\Users\\gfrov\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+63937 INFO: Including run-time hook 'pyi_rth_setuptools.py' from 
+'C:\\Users\\gfrov\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+64042 INFO: Creating base_library.zip...
+64064 INFO: Looking for dynamic libraries
+66257 INFO: Extra DLL search directories (AddDllDirectory): 
+['C:\\Users\\gfrov\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\numpy.libs', 
+'C:\\Users\\gfrov\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\pandas.libs']
+66257 INFO: Extra DLL search directories (PATH): []
+67715 INFO: Warnings written to C:\Users\gfrov\Desktop\SincroSIG\build\sincrosig\warn-sincrosig.txt
+67920 INFO: Graph cross-reference written to C:\Users\gfrov\Desktop\SincroSIG\build\sincrosig\xref-sincrosig.html
+68076 INFO: checking PYZ
+68076 INFO: Building PYZ because PYZ-00.toc is non existent
+68076 INFO: Building PYZ (ZlibArchive) C:\Users\gfrov\Desktop\SincroSIG\build\sincrosig\PYZ-00.pyz
+69311 INFO: Building PYZ (ZlibArchive) C:\Users\gfrov\Desktop\SincroSIG\build\sincrosig\PYZ-00.pyz completed 
+successfully.
+69353 INFO: checking PKG
+69354 INFO: Building PKG because PKG-00.toc is non existent
+69354 INFO: Building PKG (CArchive) SincroSIG.pkg
+69395 INFO: Building PKG (CArchive) SincroSIG.pkg completed successfully.
+69397 INFO: Bootloader C:\Users\gfrov\AppData\Local\Programs\Python\Python312\Lib\site-packages\PyInstaller\bootloader\
+Windows-64bit-intel\runw.exe
+69397 INFO: checking EXE
+69397 INFO: Building EXE because EXE-00.toc is non existent
+69397 INFO: Building EXE from EXE-00.toc
+69398 INFO: Copying bootloader EXE to C:\Users\gfrov\Desktop\SincroSIG\build\sincrosig\SincroSIG.exe
+69501 INFO: Copying icon to EXE
+69582 INFO: Copying version information to EXE
+69666 INFO: Copying 0 resources to EXE
+69666 INFO: Embedding manifest in EXE
+69741 INFO: Appending PKG archive to EXE
+69814 INFO: Fixing EXE headers
+70952 INFO: Building EXE from EXE-00.toc completed successfully.
+70980 INFO: checking COLLECT
+70980 INFO: Building COLLECT because COLLECT-00.toc is non existent
+70980 INFO: Removing dir C:\Users\gfrov\Desktop\SincroSIG\dist\SincroSIG
+72158 INFO: Building COLLECT COLLECT-00.toc
+78295 INFO: Building COLLECT COLLECT-00.toc completed successfully.
+78384 INFO: Build complete! The results are available in: C:\Users\gfrov\Desktop\SincroSIG\dist
